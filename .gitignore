@@ -1,0 +1,16 @@
+# Virtual environments -- recreate from requirements.txt instead
+.venv/
+venv/
+
+# Python bytecode and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Generated evaluation output: regenerate with `python evaluation.py`
+deliverable/qa_agent/eval_report.md
+
+# macOS
+.DS_Store
+# Personal learning work, not part of the deliverable
+study_material/

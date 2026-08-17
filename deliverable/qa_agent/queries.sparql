@@ -1,0 +1,153 @@
+########################################################################
+# queries.sparql
+# SPARQL queries for the COMP101 OOP ontology
+# (http://comp101.sase.um6p.ma/ontology/oop)
+#
+# Prefixes used throughout this file (declared once, not repeated
+# as full IRIs in each query):
+#   oop:  -> the ontology's own namespace
+#   rdf:  -> RDF vocabulary
+#   rdfs: -> RDF Schema vocabulary
+#   owl:  -> OWL vocabulary
+#   xsd:  -> XML Schema datatypes
+########################################################################
+
+PREFIX oop:  <http://comp101.sase.um6p.ma/ontology/oop#>
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+
+# ------------------------------------------------------------------
+# Query 1: List all named classes in the ontology, with their label.
+# ------------------------------------------------------------------
+SELECT ?class ?label
+WHERE {
+  ?class a owl:Class .
+  ?class rdfs:label ?label .
+}
+ORDER BY ?class
+
+
+# ------------------------------------------------------------------
+# Query 2: List all named individuals together with their type(s)
+# (excluding the generic owl:NamedIndividual type itself).
+# ------------------------------------------------------------------
+SELECT ?individual ?label ?type
+WHERE {
+  ?individual a owl:NamedIndividual ;
+              a ?type .
+  OPTIONAL { ?individual rdfs:label ?label . }
+}
+ORDER BY ?type ?individual
+
+# ------------------------------------------------------------------
+# Query 3: Find an entity from its rdfs:label.
+# (Example: the dunder method "__repr__".)
+# ------------------------------------------------------------------
+SELECT ?entity ?type
+WHERE {
+  ?entity rdfs:label "__repr__" ;
+          a ?type .
+  FILTER (?type != owl:NamedIndividual)
+}
+
+
+# ------------------------------------------------------------------
+# Query 4: Find an entity from its courseId.
+# (Example: the courseId "MOOP003", i.e. __repr__.)
+# ------------------------------------------------------------------
+SELECT ?entity ?label
+WHERE {
+  ?entity oop:courseId "MOOP003" ;
+          rdfs:label ?label .
+}
+
+
+# ------------------------------------------------------------------
+# Query 5: List all relations (outgoing and incoming) of one entity.
+# (Replace oop:MOOP003 with the entity of interest.)
+# ------------------------------------------------------------------
+SELECT ?property ?value ?direction
+WHERE {
+  {
+    oop:MOOP003 ?property ?value .
+    BIND("outgoing" AS ?direction)
+  }
+  UNION
+  {
+    ?value ?property oop:MOOP003 .
+    BIND("incoming" AS ?direction)
+  }
+}
+ORDER BY ?direction ?property
+
+
+# ------------------------------------------------------------------
+# Query 6: Find the direct (one-hop) prerequisites/dependencies of
+# a concept or skill, via oop:dependsOn.
+# (Example: Data Hiding, oop:COOP009.)
+# ------------------------------------------------------------------
+SELECT ?dependency ?label
+WHERE {
+  oop:COOP009 oop:dependsOn ?dependency .
+  OPTIONAL { ?dependency rdfs:label ?label . }
+}
+
+
+# ------------------------------------------------------------------
+# Query 7: Find all transitive dependencies of an entity, using a
+# SPARQL 1.1 property path (one or more oop:dependsOn hops).
+# ------------------------------------------------------------------
+SELECT DISTINCT ?dependency ?label
+WHERE {
+  oop:COOP009 oop:dependsOn+ ?dependency .
+  OPTIONAL { ?dependency rdfs:label ?label . }
+}
+
+
+# ------------------------------------------------------------------
+# Query 8: Find entities that contrast with a selected entity.
+# oop:contrastsWith is declared owl:SymmetricProperty, but the query
+# checks both directions to be robust regardless of how it was
+# asserted in the data.
+# (Example: Getter Method, oop:MR_OOP01.)
+# ------------------------------------------------------------------
+SELECT DISTINCT ?contrastingEntity ?label
+WHERE {
+  {
+    oop:MR_OOP01 oop:contrastsWith ?contrastingEntity .
+  }
+  UNION
+  {
+    ?contrastingEntity oop:contrastsWith oop:MR_OOP01 .
+  }
+  OPTIONAL { ?contrastingEntity rdfs:label ?label . }
+}
+
+
+# ------------------------------------------------------------------
+# Query 9: Find all methods and the data type(s) each one produces.
+# ------------------------------------------------------------------
+SELECT ?method ?methodLabel ?producedType ?typeLabel
+WHERE {
+  ?method a oop:Method ;
+          rdfs:label ?methodLabel ;
+          oop:producesType ?producedType .
+  ?producedType rdfs:label ?typeLabel .
+}
+ORDER BY ?methodLabel
+
+
+# ------------------------------------------------------------------
+# Query 10: Find all methods and their possible (thrown) errors.
+# ------------------------------------------------------------------
+SELECT ?method ?methodLabel ?error ?errorLabel
+WHERE {
+  ?method a oop:Method ;
+          rdfs:label ?methodLabel ;
+          oop:throwsError ?error .
+  ?error rdfs:label ?errorLabel .
+}
+ORDER BY ?methodLabel
