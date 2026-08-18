@@ -1,16 +1,21 @@
 """evaluation.py -- the evaluation set for AI-TUTOR-WP-003 (acceptance criteria).
 
-32 cases covering every behaviour the work package requires: grounded answers,
+35 cases covering every behaviour the work package requires: grounded answers,
 identifier citation, refusal, clarification, empty results, and paths.
 
-Every expected value was read from the ontology with graph_service, not from
-memory, so a failure means the agent is wrong -- not the expectation.
+Expected values were read from the ontology with graph_service. That is weaker
+than it sounds: a bug in the service propagates into the expectation, and one
+did -- see report.md section 4.6. Relation cases therefore carry a "truth" field
+naming the entity and property they ask about, and
+tests/test_evaluation_cases.py checks those expectations against the raw
+triples, bypassing the service.
 
 Run it:
     .venv/bin/python evaluation.py            all cases, writes eval_report.md
     .venv/bin/python evaluation.py refusal    only cases in one category
 """
 
+import re
 import sys
 import time
 from pathlib import Path
@@ -21,8 +26,12 @@ from agent import MODEL_NAME, _tool_calls_of, build_agent
 #   question  what the student asks
 #   category  what behaviour is under test
 #   tool      the tool that must be called ("" = any tool, None = no tool at all)
-#   expect    every string that must appear in the answer (case-insensitive)
-#   forbid    strings that must NOT appear
+#   expect      every string that must appear (case-insensitive, word boundary)
+#   expect_any  at least one of these must appear
+#   forbid      strings that must NOT appear
+#   truth       (entity, property) this case really asks about. Relation cases
+#               carry it so their expectations can be checked against the raw
+#               triples instead of against graph_service -- see report 4.6.
 CASES = [
     # -- definitions, grounded in the ontology's own text ------------------
     dict(id=1, category="definition", question="What is Encapsulation?",
@@ -59,28 +68,33 @@ CASES = [
          expect=["Abstraction", "Data Hiding"]),
 
     # -- named relations ----------------------------------------------------
-    dict(id=12, category="relation", question="What contrasts with Inheritance?",
+    dict(id=12, category="relation", truth=("Inheritance", "contrastsWith"), question="What contrasts with Inheritance?",
          tool="find_named_relation", expect=["Composition", "Interface"]),
-    dict(id=13, category="relation", question="What contrasts with Static Typing?",
+    dict(id=13, category="relation", truth=("Static Typing", "contrastsWith"), question="What contrasts with Static Typing?",
          tool="find_named_relation", expect=["Duck Typing", "COOP019"]),
-    dict(id=14, category="relation", question="What enables Instantiation?",
+    dict(id=14, category="relation", truth=("Instantiation", "enabledBy"), question="What enables Instantiation?",
          tool="find_named_relation", expect=["Constructor", "OM_OOP01"],
          forbid=["Class"]),
-    dict(id=15, category="relation", question="What enables Method Overriding?",
+    dict(id=15, category="relation", truth=("Method Overriding", "enables"), question="What does Method Overriding enable?",
          tool="find_named_relation", expect=["Polymorphism", "COOP018"]),
-    dict(id=16, category="relation", question="What type does __repr__ produce?",
+    dict(id=35, category="empty-result", truth=("Method Overriding", "enabledBy"),
+         question="What enables Method Overriding?",
+         tool="find_named_relation", expect=["Method Overriding"],
+         forbid=["Polymorphism"]),
+    dict(id=16, category="relation", truth=("__repr__", "producesType"), question="What type does __repr__ produce?",
          tool="find_named_relation", expect=["str", "DT_OOP_STR"]),
-    dict(id=17, category="relation", question="What type does __eq__ produce?",
+    dict(id=17, category="relation", truth=("__eq__", "producesType"), question="What type does __eq__ produce?",
          tool="find_named_relation", expect=["bool", "DT_OOP_BOOL"]),
-    dict(id=18, category="relation", question="What type does __len__ produce?",
+    dict(id=18, category="relation", truth=("__len__", "producesType"), question="What type does __len__ produce?",
          tool="find_named_relation", expect=["int", "DT_OOP_INT"]),
-    dict(id=19, category="relation", question="Which error can __repr__ throw?",
+    dict(id=19, category="relation", truth=("__repr__", "throwsError"), question="Which error can __repr__ throw?",
          tool="find_named_relation", expect=["TypeError", "E_OOP_TYPE"]),
-    dict(id=20, category="relation", question="Which error can __eq__ throw?",
+    dict(id=20, category="relation", truth=("__eq__", "throwsError"), question="Which error can __eq__ throw?",
          tool="find_named_relation", expect=["AttributeError", "E_OOP_ATTR"]),
-    dict(id=21, category="relation", question="What are the parts of Encapsulation?",
+    dict(id=21, category="relation", truth=("Encapsulation", "hasPart"), question="What are the parts of Encapsulation?",
          tool="find_named_relation", expect=["Getter Method", "Setter Method"]),
-    dict(id=22, category="relation", question="What is an example of a Dunder Method?",
+    dict(id=22, category="relation", truth=("Dunder Method", "hasExample"),
+         question="What is an example of a Dunder Method?",
          tool="", expect=["__repr__"]),  # either relation tool is a valid route
 
     # -- paths ---------------------------------------------------------------
@@ -88,7 +102,7 @@ CASES = [
          tool="find_relation_path",
          expect=["Encapsulation", "dependsOn"]),
     dict(id=24, category="path", question="How is Object Identity connected to Class?",
-         tool="find_relation_path", expect=["Object"]),
+         tool="find_relation_path", expect=["dependsOn", "COOP002"]),
 
     # -- listing --------------------------------------------------------------
     dict(id=25, category="listing", question="Which errors are covered in this lecture?",
@@ -114,10 +128,11 @@ CASES = [
     # -- empty result is a real answer, not a failure -------------------------
     dict(id=29, category="empty-result", question="What does __repr__ depend on?",
          tool="find_concept_dependencies",
-         expect=["no", "__repr__"],
-         forbid=["object", "class definition"]),
+         expect=["__repr__"], expect_any=["no", "none", "not", "nothing"],
+         forbid=["class definition"]),
     dict(id=30, category="empty-result", question="What contrasts with __repr__?",
-         tool="find_named_relation", expect=["no"]),
+         tool="find_named_relation",
+         expect=["__repr__"], expect_any=["no", "none", "not", "nothing"]),
 
     # -- ambiguity: must ask back, not guess ----------------------------------
     dict(id=31, category="ambiguity", question="Tell me about abstract.",
@@ -128,10 +143,15 @@ CASES = [
 ]
 
 
+def _mentions(answer: str, phrase: str) -> bool:
+    """Whole-phrase match, so "no" does not match "known" and "object" does not
+    match "Object-Oriented Programming"."""
+    return re.search(rf"(?<!\w){re.escape(phrase.casefold())}(?!\w)", answer.casefold()) is not None
+
+
 def check(case: dict, answer: str, tools_called: list[str]) -> list[str]:
     """Return the reasons this case failed; an empty list means it passed."""
     problems = []
-    lowered = answer.casefold()
 
     wanted_tool = case.get("tool", "")
     if wanted_tool is None:
@@ -144,11 +164,15 @@ def check(case: dict, answer: str, tools_called: list[str]) -> list[str]:
         problems.append(f"called {tools_called or 'nothing'}, expected {wanted_tool}")
 
     for phrase in case.get("expect", []):
-        if phrase.casefold() not in lowered:
+        if not _mentions(answer, phrase):
             problems.append(f"missing {phrase!r}")
 
+    alternatives = case.get("expect_any", [])
+    if alternatives and not any(_mentions(answer, phrase) for phrase in alternatives):
+        problems.append(f"none of {alternatives} present")
+
     for phrase in case.get("forbid", []):
-        if phrase.casefold() in lowered:
+        if _mentions(answer, phrase):
             problems.append(f"contains forbidden {phrase!r}")
 
     return problems
