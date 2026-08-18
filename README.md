@@ -21,8 +21,12 @@ deliverable/
     tools.py               step 5: LangChain tool wrappers
     prompts.py             the agent's system prompt
     agent.py               the agent (ChatOllama + create_agent)
-    evaluation.py          34-case evaluation set
-    tests/                 68 unit tests for the graph service
+    evaluation.py          35-case evaluation set
+    eval_report.md         results of the most recent evaluation run
+    determinism_check.py   proves the service is reproducible across processes
+    reasoning_delta.py     reproduces the reasoning figures quoted in the report
+    tests/                 74 unit tests: the graph service, and the
+                           evaluation set checked against raw triples
     requirements.txt
   givenWP/                 the work package and the original ontology
   kg_reading_notes.md      reading artifact
@@ -62,10 +66,12 @@ ollama pull gemma4:e2b-mlx
 cd deliverable/qa_agent
 
 .venv/bin/python inspect_ontology.py            # ontology inventory
-.venv/bin/python -m pytest tests/ -q            # 68 tests, no LLM, ~0.2s
+.venv/bin/python -m pytest tests/ -q            # 74 tests, no LLM, ~1s
 .venv/bin/python agent.py                       # interactive tutor
 .venv/bin/python agent.py "What is Encapsulation?"
-.venv/bin/python evaluation.py                  # 34 cases, writes eval_report.md
+.venv/bin/python determinism_check.py           # same output in 3 processes
+.venv/bin/python reasoning_delta.py             # what a reasoner adds
+.venv/bin/python evaluation.py                  # 35 cases, writes eval_report.md
 ```
 
 The SPARQL queries in `queries.sparql` are written to be run in Protégé's SPARQL

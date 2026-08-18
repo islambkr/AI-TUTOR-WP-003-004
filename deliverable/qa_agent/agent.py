@@ -20,11 +20,12 @@ from tools import GRAPH_TOOLS
 MODEL_NAME = "gemma4:e2b-mlx"
 TEMPERATURE = 0
 
-# Ollama defaults to a 4096-token context. The system prompt and the five tool
-# schemas cost roughly 1,500 tokens before the question is even asked, so a
-# normal exchange overflowed the window and the model started answering with
-# fragments of other questions. 8192 leaves room for a multi-tool answer while
-# staying small enough to run on a laptop.
+# Ollama defaults to a 4096-token context. Before the prompt and tool
+# descriptions were trimmed they cost about 2,700 tokens before the question was
+# even asked, and one tool result added ~900 more, so a normal exchange
+# overflowed the window and the model began answering with fragments of other
+# questions. They now cost about 1,600; 8192 leaves room for a multi-tool answer
+# while staying small enough to run on a laptop.
 NUM_CTX = 8192
 
 
