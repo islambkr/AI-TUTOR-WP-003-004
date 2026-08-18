@@ -193,38 +193,30 @@ work package requires, and its tests were unaffected.
 
 Answer latency also fell from 8-18 seconds per question to 2-7.
 
-## 5. Unresolved questions
+## 5. Open questions
 
-1. **Tool selection remains non-deterministic.** Temperature 0 fixes sampling
-   but not tool choice. The service layer is fully reproducible; the agent
-   layer is not. Any claim of a pass rate should therefore be stated over
-   several runs, not one.
+1. **Should the graph service use a reasoner?**
+   Right now it only reads facts that are written in the file. Some facts are
+   not written but follow logically — for example every Method is also a
+   TypeProducer. Because I do not run a reasoner, asking "which entities are
+   TypeProducers?" returns nothing. Should the tutor teach what is written, or
+   also what follows from it?
 
-   A related question for the mentors: what is an acceptable way to report
-   agent quality in this project — a range, a median over N runs, or a
-   worst-case figure?
+2. **How should the agent's score be reported?**
+   The graph service gives the same answer every time. The agent does not: the
+   same code scored between 14 and 32 out of 34 on different runs. I report a
+   range. Is a range acceptable, or is a single number expected?
 
-2. **The service answers from asserted facts only.** `TypeProducer` and
-   `ImplementorType` return no individuals, because their members are inferred
-   through `owl:unionOf`. A student asking "which entities are TypeProducers?"
-   gets an honest empty answer that a reasoner would fill. Whether the tutor
-   should reason is a design question for the mentors.
+3. **Was it right to ignore the `teaches` relation when finding paths?**
+   The lecture is linked to all 66 entities, so any two entities are always two
+   steps apart through the lecture. That path is true but tells the student
+   nothing, so I excluded it and show concept-to-concept paths instead. That was
+   my judgement, not a rule from the ontology.
 
-3. **Path search excludes `teaches`/`taughtIn`.** Every entity is taught in
-   Lecture 10, so without this exclusion every pair is two hops apart through
-   the lecture — true but meaningless. The exclusion is a judgement about
-   usefulness, not a fact from the ontology, and should be reviewed.
-
-4. **Answers echo the `statement` field, so phrasing is stiff** — for example
-   *"The entity `__repr__` producesType str"*. This is the deliberate cost of
-   guaranteeing direction is never reversed. A post-processing step could
-   smooth the language without letting the model re-derive the facts.
-
-5. **`get_dependencies` and `find_named_relation` gained parameters beyond the
-   work package signatures** (`direction`, and the extra tools). Each is
-   optional with a default, so the specified signatures still work unchanged.
-   `direction` was required by section 6's question *"What concepts depend on
-   Class?"*, which the two-argument form cannot express.
+4. **Should the ontology keep writing both directions of every relation?**
+   The file states both "A teaches B" and "B taughtIn A". A reasoner could
+   derive the second from the first. Keeping both means the file works without a
+   reasoner, but every manual edit has to be made twice.
 
 ## 6. Known gaps
 

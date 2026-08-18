@@ -114,16 +114,22 @@ def find_concept_dependencies(
 def find_named_relation(label_or_id: str, relation: str) -> dict:
     """Return what one entity is linked to by ONE named relation.
 
-    Use whenever the question names a relation other than dependency:
+    Use whenever the question names a relation other than dependency.
+
+    The entity you pass is always the SUBJECT of the relation, so direction
+    matters: a property and its opposite answer different questions.
 
       "what contrasts with X"     -> relation="contrastsWith"
-      "what enables X"            -> relation="enables"
+      "what enables X"            -> relation="enabledBy"
+      "what does X enable"        -> relation="enables"
       "what type does X produce"  -> relation="producesType"
       "which error can X throw"   -> relation="throwsError"
-      "what is X part of"         -> relation="partOf"
       "what are the parts of X"   -> relation="hasPart"
-      "examples of X"             -> relation="hasExample"
+      "what is X part of"         -> relation="partOf"
+      "what are examples of X"    -> relation="hasExample"
+      "what is X an example of"   -> relation="exampleOf"
       "what implements X"         -> relation="implementedBy"
+      "what does X implement"     -> relation="implements"
 
     X is a placeholder. Pass the entity from the student's question, never one
     named in these instructions.

@@ -457,24 +457,49 @@ def test_get_relations_by_name_filters_to_one_relation():
     ]
 
 
-def test_get_relations_by_name_accepts_the_inverse_spelling():
-    """"What enables X?" must find the asserted "X enabledBy Y".
+def test_get_relations_by_name_respects_direction():
+    """A property and its inverse ask different questions.
 
-    The question and the assertion are the two ends of one fact, so both
-    spellings have to resolve to it.
+    The ontology asserts "Method Overriding enables Polymorphism". Asking for
+    "enables" must return it; asking for "enabledBy" must return nothing,
+    because nothing enables Method Overriding. Collapsing the two would answer
+    the opposite question while looking correct.
     """
-    asked_forwards = get_relations_by_name("Instantiation", "enables")
-    asked_backwards = get_relations_by_name("Instantiation", "enabledBy")
-    assert asked_forwards == asked_backwards
-    assert [r["statement"] for r in asked_forwards] == [
+    forwards = get_relations_by_name("Method Overriding", "enables")
+    backwards = get_relations_by_name("Method Overriding", "enabledBy")
+    assert [r["statement"] for r in forwards] == [
+        "Method Overriding (OM_OOP04) enables Polymorphism (COOP018)"
+    ]
+    assert backwards == []
+
+
+def test_get_relations_by_name_finds_a_fact_asserted_from_the_other_end():
+    """Direction is respected, but the inverse spelling is still consulted.
+
+    "Instantiation enabledBy Constructor" is asserted; so is its inverse
+    "Constructor enables Instantiation". Either assertion satisfies the
+    question "what is Instantiation enabled by?".
+    """
+    assert [r["statement"] for r in get_relations_by_name("Instantiation", "enabledBy")] == [
         "Instantiation (COOP007) enabledBy Constructor (OM_OOP01)"
     ]
+    assert get_relations_by_name("Instantiation", "enables") == []
+
+
+def test_get_relations_by_name_never_returns_the_inverse_predicate():
+    """Across the whole ontology, a request for P returns only P."""
+    import graph_service as gs
+
+    for prop in gs.OBJECT_PROPERTIES:
+        name = gs._local_name(prop)
+        for individual in gs.GRAPH.subjects(RDF.type, OWL.NamedIndividual):
+            for record in get_relations_by_name(individual, name):
+                assert record["predicate"] == name
 
 
 def test_get_relations_by_name_does_not_leak_other_relations():
-    """The bug this function exists to fix: Class is a dependency of
-    Instantiation but does not enable it."""
-    labels = {r["label"] for r in get_relations_by_name("Instantiation", "enables")}
+    """Class is a dependency of Instantiation but does not enable it."""
+    labels = {r["label"] for r in get_relations_by_name("Instantiation", "enabledBy")}
     assert labels == {"Constructor"}
     assert "Class" not in labels
 
@@ -493,12 +518,22 @@ def test_get_relations_by_name_reports_an_unknown_entity():
     assert get_relations_by_name("gradient descent", "enables")[0]["status"] == "not_found"
 
 
-def test_get_relations_by_name_agrees_with_get_relations():
-    """Filtering must be a subset of the full relation list, never new facts."""
-    everything = get_relations("Encapsulation")
-    for name in {record["predicate"] for record in everything}:
-        subset = get_relations_by_name("Encapsulation", name)
-        assert all(record in everything for record in subset)
+def test_get_relations_by_name_agrees_with_the_raw_graph():
+    """Every returned fact must exist as a triple, in the direction claimed."""
+    import graph_service as gs
+    from rdflib import URIRef
+
+    for name in ("hasPart", "partOf", "enables", "enabledBy", "producesType"):
+        prop = next(p for p in gs.OBJECT_PROPERTIES if gs._local_name(p) == name)
+        inverse = gs.INVERSE_OF.get(prop)
+        for individual in gs.GRAPH.subjects(RDF.type, OWL.NamedIndividual):
+            for record in get_relations_by_name(individual, name):
+                other = URIRef(record["iri"])
+                asserted = (individual, prop, other) in gs.GRAPH
+                asserted_inverse = (
+                    inverse is not None and (other, inverse, individual) in gs.GRAPH
+                )
+                assert asserted or asserted_inverse, record["statement"]
 
 
 # ------------------------------- the five conditions named in section 5.4 ----

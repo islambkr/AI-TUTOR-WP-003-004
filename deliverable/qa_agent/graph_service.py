@@ -362,8 +362,8 @@ def _relations_of(iri) -> list[dict]:
     for other, predicate in GRAPH.subject_predicates(iri):
         if predicate not in OBJECT_PROPERTIES:
             continue
-        if predicate in SYMMETRIC_PROPERTIES:
-            continue  # already reported above
+        if predicate in SYMMETRIC_PROPERTIES and (iri, predicate, other) in GRAPH:
+            continue  # the same symmetric fact was already reported outgoing
         # Skip an incoming relation whose inverse was already reported going
         # out. "str isProducedBy __repr__" is the same fact as
         # "__repr__ producesType str", and the agent should hear it once.
@@ -443,15 +443,16 @@ def relation_names() -> list[str]:
 
 
 def get_relations_by_name(label_or_id: str, relation: str) -> list[dict]:
-    """Return only the relations of one entity that use a named property.
+    """Return the facts in which the entity is the SUBJECT of a named property.
 
-    Answers "what does X contrast with", "what enables X", "what does X
-    produce", "which error does X throw" -- one question, one relation.
+    get_relations_by_name(X, "hasPart") answers "X hasPart what?" and never
+    "what hasPart X?" -- those are different questions, and the second one is
+    asked with "partOf" instead. Direction is part of the question.
 
-    A relation matches when the requested name equals the property used, or its
-    owl:inverseOf partner. That is what makes "enables" find the asserted
-    "Instantiation enabledBy Constructor": the question and the assertion are
-    two ends of the same fact.
+    Both spellings of an inverse pair are consulted, but only in the position
+    that preserves the question: "X hasPart ?y" is also satisfied by an asserted
+    "?y partOf X", because owl:inverseOf makes those the same fact. What is NOT
+    accepted is "X partOf ?y", which is the opposite claim.
 
     Returns an empty list when the entity has that relation nowhere, and a
     one-element list holding a problem record when the entity or the relation
@@ -463,9 +464,13 @@ def get_relations_by_name(label_or_id: str, relation: str) -> list[dict]:
         return [problem]
 
     wanted = relation.strip().casefold()
-    known = {name.casefold() for name in relation_names()}
+    property_iri = next(
+        (prop for prop in sorted(OBJECT_PROPERTIES, key=str)
+         if _local_name(prop).casefold() == wanted),
+        None,
+    )
 
-    if wanted not in known:
+    if property_iri is None:
         return [
             _not_found(
                 relation,
@@ -473,18 +478,32 @@ def get_relations_by_name(label_or_id: str, relation: str) -> list[dict]:
             )
         ]
 
-    # Accept the inverse spelling too, so "enables" matches an asserted
-    # "enabledBy" and vice versa.
-    accepted = {wanted}
-    for prop in OBJECT_PROPERTIES:
-        if _local_name(prop).casefold() == wanted and prop in INVERSE_OF:
-            accepted.add(_local_name(INVERSE_OF[prop]).casefold())
+    # "X <relation> ?other" asserted directly...
+    others = set(GRAPH.objects(iri, property_iri))
 
-    return [
-        record
-        for record in _relations_of(iri)
-        if record["predicate"].casefold() in accepted
-    ]
+    # ...or the same fact asserted from the other end as "?other <inverse> X".
+    inverse = INVERSE_OF.get(property_iri)
+    if inverse is not None:
+        others |= set(GRAPH.subjects(inverse, iri))
+
+    name = _local_name(property_iri)
+    records = []
+
+    for other in sorted(others, key=str):
+        records.append(
+            {
+                "status": "ok",
+                "predicate": name,
+                "direction": "symmetric" if property_iri in SYMMETRIC_PROPERTIES else "outgoing",
+                "statement": f"{_citation_of(iri)} {name} {_citation_of(other)}",
+                "iri": str(other),
+                "id": _course_id_of(other) or _local_name(other),
+                "label": _label_of(other),
+                "citation": _citation_of(other),
+            }
+        )
+
+    return sorted(records, key=lambda record: record["label"])
 
 
 def get_dependencies(
@@ -747,7 +766,7 @@ def list_entities_by_type(type_label: str) -> list[dict]:
             {
                 "status": "ok",
                 "iri": str(entity_iri),
-                "id": _course_id_of(entity_iri),
+                "id": _course_id_of(entity_iri) or _local_name(entity_iri),
                 "label": _label_of(entity_iri),
                 "type": _local_name(class_iri),
             }
