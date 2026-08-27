@@ -20,13 +20,16 @@ deliverable/
     graph_service.py       step 4: deterministic graph service, no LLM
     tools.py               step 5: LangChain tool wrappers
     prompts.py             the agent's system prompt
-    agent.py               the agent (ChatOllama + create_agent)
+    agent.py               the agent (ChatOllama + create_agent), with
+                           short-term memory of the current conversation
     evaluation.py          35-case evaluation set
     eval_report.md         results of the most recent evaluation run
     determinism_check.py   proves the service is reproducible across processes
     reasoning_delta.py     reproduces the reasoning figures quoted in the report
-    tests/                 74 unit tests: the graph service, and the
-                           evaluation set checked against raw triples
+    tests/                 107 unit tests, no LLM: the graph service, the
+                           SPARQL queries executed against the ontology, the
+                           evaluation set checked against raw triples, and how
+                           the agent is wired for memory
     requirements.txt
   givenWP/                 the work package and the original ontology
   kg_reading_notes.md      reading artifact
@@ -66,8 +69,8 @@ ollama pull gemma4:e2b-mlx
 cd deliverable/qa_agent
 
 .venv/bin/python inspect_ontology.py            # ontology inventory
-.venv/bin/python -m pytest tests/ -q            # 74 tests, no LLM, ~1s
-.venv/bin/python agent.py                       # interactive tutor
+.venv/bin/python -m pytest tests/ -q            # 107 tests, no LLM, ~1s
+.venv/bin/python agent.py                       # interactive tutor, follow-ups work
 .venv/bin/python agent.py "What is Encapsulation?"
 .venv/bin/python determinism_check.py           # same output in 3 processes
 .venv/bin/python reasoning_delta.py             # what a reasoner adds
@@ -75,7 +78,9 @@ cd deliverable/qa_agent
 ```
 
 The SPARQL queries in `queries.sparql` are written to be run in Protégé's SPARQL
-tab, or against the graph with RDFLib's `graph.query()`.
+tab, or against the graph with RDFLib's `graph.query()`. `tests/test_queries.py`
+executes all ten against the ontology on every test run, so a query that stops
+returning results fails the suite instead of failing quietly.
 
 ## The ontology, measured
 
@@ -91,5 +96,11 @@ tab, or against the graph with RDFLib's `graph.query()`.
 
 The graph service answers from **asserted** triples only — it runs no reasoner.
 `TypeProducer` and `ImplementorType` therefore report no individuals, because
-their members are inferred through `owl:unionOf`. See `deliverable/report.md`
-for that and other open questions.
+their members are inferred through `owl:unionOf`.
+
+This is a deliberate decision, not an omission: asked whether the service should
+reason, the mentor's answer was that inference should come from the LLM rather
+than from a reasoning engine underneath it. `reasoning_delta.py` stays as a
+measurement of what that leaves out — 44 entity-level statements — rather than
+as part of the pipeline. See `deliverable/report.md` for the remaining open
+questions.
