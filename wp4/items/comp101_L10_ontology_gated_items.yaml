@@ -1,0 +1,1658 @@
+schema_version: '1.0'
+course:
+  id: COMP101
+  lecture_id: L10
+  lecture_title: Object-Oriented Programming
+source:
+  ontology_file: comp101_L10 (1).owl
+  ontology_namespace: http://comp101.sase.um6p.ma/ontology/oop#
+  source_of_truth: true
+  inventory:
+    named_classes: 18
+    named_individuals: 66
+    object_properties: 21
+    datatype_properties: 5
+generation_policy:
+  direction: ontology_to_items
+  item_count: 51
+  gate_mode: explicit_allowlist
+  instance_generation_rule: Use only facts from the OWL ontology that involve allowed_entity_ids and allowed_relation_ids
+    for the target item.
+  unknown_knowledge_rule: Reject or flag any generated instance that needs an entity, relation, or fact outside
+    the item gate.
+  excluded_relations:
+  - taught_in
+  - teaches
+  excluded_relations_reason: Lecture-membership edges do not add item-level pedagogical evidence and create trivial
+    graph connections.
+  lst_requires_policy: Do not convert ontology depends_on edges directly into LST prerequisite relations. The requires
+    field is intentionally empty and must be reviewed separately.
+  owl_world_note: OWL uses open-world semantics. This YAML uses a closed allowlist only for generation control.
+  definition_policy: The definition datatype property can be used only for allowed entities. Resolve the current
+    value from the OWL file at runtime.
+items:
+- id: COMP101-L10-ITEM-001
+  title: Explain what a class represents
+  description: Explain that a class is a blueprint or template that defines the attributes and methods of objects
+    of that type.
+  requires: []
+  tags:
+  - Concept
+  - Class
+  ontology_gate:
+    anchor_ids:
+    - COOP001
+    allowed_entity_ids:
+    - COOP001
+    - LC_OOP_CLASS
+    - CM_OOP02
+    - CM_OOP05
+    - MR_OOP04
+    - MR_OOP05
+    - OM_OOP01
+    - OM_OOP07
+    - PI_OOP03
+    allowed_relation_ids:
+    - definition
+    - implemented_by
+    - has_part
+    - enabled_by
+    max_depth: 1
+    evidence_triples:
+    - - COOP001
+      - implemented_by
+      - LC_OOP_CLASS
+    - - COOP001
+      - has_part
+      - OM_OOP01
+    - - COOP001
+      - enabled_by
+      - PI_OOP03
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-002
+  title: Explain the relation between a class and an object
+  description: Explain that an object is an instance of a class and that each object has its own instance attributes.
+  requires: []
+  tags:
+  - Concept
+  - Object
+  ontology_gate:
+    anchor_ids:
+    - COOP001
+    - COOP002
+    allowed_entity_ids:
+    - COOP001
+    - COOP002
+    - CM_OOP01
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - has_part
+    max_depth: 1
+    evidence_triples:
+    - - COOP002
+      - depends_on
+      - COOP001
+    - - COOP002
+      - has_part
+      - CM_OOP01
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-003
+  title: Explain instantiation
+  description: Explain that instantiation creates an object from a class and triggers the constructor.
+  requires: []
+  tags:
+  - Concept
+  - Instantiation
+  ontology_gate:
+    anchor_ids:
+    - COOP007
+    allowed_entity_ids:
+    - COOP007
+    - COOP001
+    - OM_OOP01
+    - MOOP001
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - enabled_by
+    - example_of
+    max_depth: 1
+    evidence_triples:
+    - - COOP007
+      - depends_on
+      - COOP001
+    - - COOP007
+      - enabled_by
+      - OM_OOP01
+    - - MOOP001
+      - example_of
+      - OM_OOP01
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-004
+  title: Distinguish instance attributes from class attributes
+  description: Distinguish per-object instance attributes from class attributes that are defined on the class and
+    shared unless shadowed.
+  requires: []
+  tags:
+  - ClassMember
+  ontology_gate:
+    anchor_ids:
+    - CM_OOP01
+    - CM_OOP02
+    allowed_entity_ids:
+    - CM_OOP01
+    - CM_OOP02
+    - COOP001
+    - COOP002
+    - PI_OOP04
+    allowed_relation_ids:
+    - definition
+    - contrasts_with
+    - part_of
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - CM_OOP01
+      - contrasts_with
+      - CM_OOP02
+    - - CM_OOP01
+      - part_of
+      - COOP002
+    - - CM_OOP02
+      - part_of
+      - COOP001
+    - - CM_OOP01
+      - uses_concept
+      - PI_OOP04
+    - - CM_OOP02
+      - uses_concept
+      - PI_OOP04
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-005
+  title: Explain self reference in instance methods
+  description: Explain that self is the conventional first parameter of an instance method and gives the method
+    access to the calling object's attributes.
+  requires: []
+  tags:
+  - OOPMechanism
+  ontology_gate:
+    anchor_ids:
+    - OM_OOP02
+    allowed_entity_ids:
+    - OM_OOP02
+    - CM_OOP01
+    - MOOP001
+    - E_OOP_TYPE
+    allowed_relation_ids:
+    - definition
+    - enables
+    - uses_concept
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - OM_OOP02
+      - enables
+      - CM_OOP01
+    - - MOOP001
+      - uses_concept
+      - OM_OOP02
+    - - OM_OOP02
+      - throws_error
+      - E_OOP_TYPE
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-006
+  title: Explain encapsulation
+  description: Explain that encapsulation bundles data and behaviour in a class and controls access to enforce invariants.
+  requires: []
+  tags:
+  - Concept
+  - Encapsulation
+  ontology_gate:
+    anchor_ids:
+    - COOP_ENC
+    allowed_entity_ids:
+    - COOP_ENC
+    - COOP001
+    - MR_OOP01
+    - MR_OOP02
+    - LC_OOP_CLASS
+    - DA_OOP07
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - has_part
+    - implemented_by
+    - contrasts_with
+    max_depth: 1
+    evidence_triples:
+    - - COOP_ENC
+      - depends_on
+      - COOP001
+    - - COOP_ENC
+      - has_part
+      - MR_OOP01
+    - - COOP_ENC
+      - has_part
+      - MR_OOP02
+    - - COOP_ENC
+      - implemented_by
+      - LC_OOP_CLASS
+    - - COOP_ENC
+      - contrasts_with
+      - DA_OOP07
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-007
+  title: Explain data hiding
+  description: Explain that data hiding restricts direct access to internal object state so that invariants can
+    be enforced.
+  requires: []
+  tags:
+  - Concept
+  - Data Hiding
+  ontology_gate:
+    anchor_ids:
+    - COOP009
+    allowed_entity_ids:
+    - COOP009
+    - COOP_ENC
+    - OM_OOP03
+    - MR_OOP01
+    - MR_OOP02
+    - PI_OOP02
+    - E_OOP_ATTR
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - enabled_by
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - COOP009
+      - depends_on
+      - COOP_ENC
+    - - COOP009
+      - depends_on
+      - OM_OOP03
+    - - COOP009
+      - enabled_by
+      - MR_OOP01
+    - - COOP009
+      - enabled_by
+      - MR_OOP02
+    - - COOP009
+      - enabled_by
+      - PI_OOP02
+    - - COOP009
+      - throws_error
+      - E_OOP_ATTR
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-008
+  title: Explain Python name mangling
+  description: Explain how a double leading underscore inside a class body is rewritten by Python and how this differs
+    from a single leading underscore convention.
+  requires: []
+  tags:
+  - OOPMechanism
+  - Encapsulation
+  ontology_gate:
+    anchor_ids:
+    - OM_OOP03
+    allowed_entity_ids:
+    - OM_OOP03
+    - COOP009
+    - OM_OOP07
+    - E_OOP_ATTR
+    allowed_relation_ids:
+    - definition
+    - enables
+    - contrasts_with
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - OM_OOP03
+      - enables
+      - COOP009
+    - - OM_OOP03
+      - contrasts_with
+      - OM_OOP07
+    - - OM_OOP03
+      - throws_error
+      - E_OOP_ATTR
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-009
+  title: Use getter methods to expose hidden state
+  description: Explain the role of a getter method as a public method that returns the value of hidden state.
+  requires: []
+  tags:
+  - MethodRole
+  - Encapsulation
+  ontology_gate:
+    anchor_ids:
+    - MR_OOP01
+    allowed_entity_ids:
+    - MR_OOP01
+    - COOP_ENC
+    - COOP009
+    - PI_OOP02
+    - MR_OOP02
+    allowed_relation_ids:
+    - definition
+    - part_of
+    - enables
+    - contrasts_with
+    max_depth: 1
+    evidence_triples:
+    - - MR_OOP01
+      - part_of
+      - COOP_ENC
+    - - MR_OOP01
+      - enables
+      - COOP009
+    - - MR_OOP01
+      - contrasts_with
+      - PI_OOP02
+    - - MR_OOP01
+      - contrasts_with
+      - MR_OOP02
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-010
+  title: Use setter methods to protect class invariants
+  description: Explain how a setter method changes hidden state with validation and can reject invalid values.
+  requires: []
+  tags:
+  - MethodRole
+  - Encapsulation
+  ontology_gate:
+    anchor_ids:
+    - MR_OOP02
+    allowed_entity_ids:
+    - MR_OOP02
+    - COOP_ENC
+    - COOP009
+    - E_OOP_VALUE
+    - PI_OOP02
+    - MR_OOP01
+    allowed_relation_ids:
+    - definition
+    - part_of
+    - enables
+    - throws_error
+    - contrasts_with
+    max_depth: 1
+    evidence_triples:
+    - - MR_OOP02
+      - part_of
+      - COOP_ENC
+    - - MR_OOP02
+      - enables
+      - COOP009
+    - - MR_OOP02
+      - throws_error
+      - E_OOP_VALUE
+    - - MR_OOP02
+      - contrasts_with
+      - PI_OOP02
+    - - MR_OOP02
+      - contrasts_with
+      - MR_OOP01
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-011
+  title: Compare property objects with getter and setter methods
+  description: Compare the property object with explicit getter and setter methods as mechanisms for controlled
+    attribute access.
+  requires: []
+  tags:
+  - PythonInternals
+  - Encapsulation
+  ontology_gate:
+    anchor_ids:
+    - PI_OOP02
+    - MR_OOP01
+    - MR_OOP02
+    allowed_entity_ids:
+    - PI_OOP02
+    - MR_OOP01
+    - MR_OOP02
+    - COOP009
+    allowed_relation_ids:
+    - definition
+    - contrasts_with
+    - enables
+    max_depth: 1
+    evidence_triples:
+    - - PI_OOP02
+      - contrasts_with
+      - MR_OOP01
+    - - PI_OOP02
+      - contrasts_with
+      - MR_OOP02
+    - - PI_OOP02
+      - enables
+      - COOP009
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-012
+  title: Explain abstraction
+  description: Explain abstraction as exposing a clean public interface while hiding implementation detail.
+  requires: []
+  tags:
+  - Concept
+  - Abstraction
+  ontology_gate:
+    anchor_ids:
+    - COOP012
+    allowed_entity_ids:
+    - COOP012
+    - COOP_ENC
+    - PI_OOP01
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - enabled_by
+    max_depth: 1
+    evidence_triples:
+    - - COOP012
+      - depends_on
+      - COOP_ENC
+    - - COOP012
+      - enabled_by
+      - PI_OOP01
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-013
+  title: Explain inheritance
+  description: Explain that inheritance lets a child class acquire attributes and methods from a parent class for
+    reuse and specialisation.
+  requires: []
+  tags:
+  - Concept
+  - Inheritance
+  ontology_gate:
+    anchor_ids:
+    - COOP013
+    allowed_entity_ids:
+    - COOP013
+    - COOP001
+    - CM_OOP03
+    - CM_OOP04
+    - OM_OOP06
+    - OM_OOP05
+    - LC_OOP_CLASS
+    - DA_OOP02
+    - DA_OOP03
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - has_part
+    - enabled_by
+    - implemented_by
+    - contrasts_with
+    max_depth: 1
+    evidence_triples:
+    - - COOP013
+      - depends_on
+      - COOP001
+    - - COOP013
+      - has_part
+      - CM_OOP03
+    - - COOP013
+      - has_part
+      - CM_OOP04
+    - - COOP013
+      - has_part
+      - OM_OOP06
+    - - COOP013
+      - enabled_by
+      - OM_OOP05
+    - - COOP013
+      - implemented_by
+      - LC_OOP_CLASS
+    - - COOP013
+      - contrasts_with
+      - DA_OOP02
+    - - COOP013
+      - contrasts_with
+      - DA_OOP03
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-014
+  title: Distinguish subclass from superclass
+  description: Distinguish a subclass that inherits and specialises behaviour from a superclass that provides shared
+    parent behaviour.
+  requires: []
+  tags:
+  - ClassMember
+  - Inheritance
+  ontology_gate:
+    anchor_ids:
+    - CM_OOP03
+    - CM_OOP04
+    allowed_entity_ids:
+    - CM_OOP03
+    - CM_OOP04
+    - COOP013
+    allowed_relation_ids:
+    - definition
+    - contrasts_with
+    - part_of
+    max_depth: 1
+    evidence_triples:
+    - - CM_OOP03
+      - contrasts_with
+      - CM_OOP04
+    - - CM_OOP03
+      - part_of
+      - COOP013
+    - - CM_OOP04
+      - part_of
+      - COOP013
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-015
+  title: Explain method overriding
+  description: Explain how a subclass redefines a parent method to replace or extend the inherited behaviour.
+  requires: []
+  tags:
+  - OOPMechanism
+  - Inheritance
+  ontology_gate:
+    anchor_ids:
+    - OM_OOP04
+    allowed_entity_ids:
+    - OM_OOP04
+    - COOP018
+    allowed_relation_ids:
+    - definition
+    - enables
+    max_depth: 1
+    evidence_triples:
+    - - OM_OOP04
+      - enables
+      - COOP018
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-016
+  title: Use super() in an inheritance chain
+  description: Explain how super() gives access to the next implementation in the method resolution order without
+    hardcoding a class name.
+  requires: []
+  tags:
+  - BuiltInFunction
+  - Inheritance
+  ontology_gate:
+    anchor_ids:
+    - FOOP001
+    - OM_OOP05
+    allowed_entity_ids:
+    - FOOP001
+    - OM_OOP05
+    - COOP013
+    - E_OOP_RUNTIME
+    allowed_relation_ids:
+    - definition
+    - example_of
+    - uses_concept
+    - enables
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - FOOP001
+      - example_of
+      - OM_OOP05
+    - - FOOP001
+      - uses_concept
+      - COOP013
+    - - OM_OOP05
+      - enables
+      - COOP013
+    - - FOOP001
+      - throws_error
+      - E_OOP_RUNTIME
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-017
+  title: Explain multiple inheritance
+  description: Explain that a class can inherit from more than one parent and that method lookup follows the method
+    resolution order.
+  requires: []
+  tags:
+  - OOPMechanism
+  - Inheritance
+  ontology_gate:
+    anchor_ids:
+    - OM_OOP06
+    allowed_entity_ids:
+    - OM_OOP06
+    - COOP013
+    - PI_OOP05
+    - E_OOP_TYPE
+    - DA_OOP04
+    allowed_relation_ids:
+    - definition
+    - part_of
+    - is_used_by
+    - throws_error
+    - is_required_by
+    max_depth: 1
+    evidence_triples:
+    - - OM_OOP06
+      - part_of
+      - COOP013
+    - - PI_OOP05
+      - uses_concept
+      - OM_OOP06
+    - - OM_OOP06
+      - throws_error
+      - E_OOP_TYPE
+    - - DA_OOP04
+      - depends_on
+      - OM_OOP06
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-018
+  title: Interpret the method resolution order
+  description: Explain that __mro__ lists the sequence that Python searches for attributes and methods in an inheritance
+    hierarchy.
+  requires: []
+  tags:
+  - PythonInternals
+  - Inheritance
+  ontology_gate:
+    anchor_ids:
+    - PI_OOP05
+    allowed_entity_ids:
+    - PI_OOP05
+    - OM_OOP06
+    allowed_relation_ids:
+    - definition
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - PI_OOP05
+      - uses_concept
+      - OM_OOP06
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-019
+  title: Explain polymorphism
+  description: Explain that one interface can operate on objects of different types and that runtime type determines
+    the method implementation.
+  requires: []
+  tags:
+  - Concept
+  - Polymorphism
+  ontology_gate:
+    anchor_ids:
+    - COOP018
+    allowed_entity_ids:
+    - COOP018
+    - OM_OOP04
+    - COOP013
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - enabled_by
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - COOP018
+      - depends_on
+      - OM_OOP04
+    - - COOP018
+      - enabled_by
+      - OM_OOP04
+    - - COOP018
+      - uses_concept
+      - COOP013
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-020
+  title: Explain duck typing and contrast it with static typing
+  description: Explain duck typing as using an object based on the methods it provides, and contrast this with compile-time
+    static typing.
+  requires: []
+  tags:
+  - Concept
+  - Polymorphism
+  ontology_gate:
+    anchor_ids:
+    - COOP019
+    - COOP_STATIC
+    allowed_entity_ids:
+    - COOP019
+    - COOP_STATIC
+    - COOP018
+    - OM_OOP07
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - contrasts_with
+    - enabled_by
+    max_depth: 1
+    evidence_triples:
+    - - COOP019
+      - depends_on
+      - COOP018
+    - - COOP019
+      - depends_on
+      - OM_OOP07
+    - - COOP019
+      - contrasts_with
+      - COOP_STATIC
+    - - COOP019
+      - enabled_by
+      - OM_OOP07
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-021
+  title: Use isinstance() for type checks
+  description: Explain what isinstance() checks, what it returns, and how it relates to polymorphic code.
+  requires: []
+  tags:
+  - BuiltInFunction
+  - Polymorphism
+  ontology_gate:
+    anchor_ids:
+    - FOOP002
+    allowed_entity_ids:
+    - FOOP002
+    - COOP018
+    - COOP019
+    - DT_OOP_BOOL
+    - E_OOP_TYPE
+    allowed_relation_ids:
+    - definition
+    - uses_concept
+    - produces_type
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - FOOP002
+      - uses_concept
+      - COOP018
+    - - FOOP002
+      - uses_concept
+      - COOP019
+    - - FOOP002
+      - produces_type
+      - DT_OOP_BOOL
+    - - FOOP002
+      - throws_error
+      - E_OOP_TYPE
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-022
+  title: Use hasattr() for duck-typing checks
+  description: Explain what hasattr() checks, the type of its attribute-name argument, and the type of its result.
+  requires: []
+  tags:
+  - BuiltInFunction
+  - Duck Typing
+  ontology_gate:
+    anchor_ids:
+    - FOOP003
+    allowed_entity_ids:
+    - FOOP003
+    - COOP019
+    - DT_OOP_STR
+    - DT_OOP_BOOL
+    - E_OOP_ATTR
+    allowed_relation_ids:
+    - definition
+    - uses_concept
+    - accepts_type
+    - produces_type
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - FOOP003
+      - uses_concept
+      - COOP019
+    - - FOOP003
+      - accepts_type
+      - DT_OOP_STR
+    - - FOOP003
+      - produces_type
+      - DT_OOP_BOOL
+    - - FOOP003
+      - throws_error
+      - E_OOP_ATTR
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-023
+  title: Explain object identity
+  description: Explain the difference between two references designating the same object and two objects having
+    equal value.
+  requires: []
+  tags:
+  - Concept
+  - Object
+  ontology_gate:
+    anchor_ids:
+    - COOP_OBJ_ID
+    allowed_entity_ids:
+    - COOP_OBJ_ID
+    - COOP002
+    - MOOP004
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - is_used_by
+    max_depth: 1
+    evidence_triples:
+    - - COOP_OBJ_ID
+      - depends_on
+      - COOP002
+    - - MOOP004
+      - uses_concept
+      - COOP_OBJ_ID
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-024
+  title: Explain dunder methods
+  description: Explain that dunder methods are special methods called implicitly by Python operators and built-in
+    functions.
+  requires: []
+  tags:
+  - OOPMechanism
+  - Dunder
+  ontology_gate:
+    anchor_ids:
+    - OM_OOP07
+    allowed_entity_ids:
+    - OM_OOP07
+    - MOOP002
+    - MOOP003
+    - MOOP004
+    - MOOP005
+    - COOP019
+    - OM_OOP03
+    allowed_relation_ids:
+    - definition
+    - has_example
+    - enables
+    - contrasts_with
+    max_depth: 1
+    evidence_triples:
+    - - OM_OOP07
+      - enables
+      - COOP019
+    - - OM_OOP07
+      - contrasts_with
+      - OM_OOP03
+    - - MOOP002
+      - example_of
+      - OM_OOP07
+    - - MOOP003
+      - example_of
+      - OM_OOP07
+    - - MOOP004
+      - example_of
+      - OM_OOP07
+    - - MOOP005
+      - example_of
+      - OM_OOP07
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-025
+  title: Explain __init__
+  description: Explain when __init__ runs, how it initialises instance attributes through self, and which error
+    can occur for an invalid argument count.
+  requires: []
+  tags:
+  - Method
+  - Dunder
+  ontology_gate:
+    anchor_ids:
+    - MOOP001
+    allowed_entity_ids:
+    - MOOP001
+    - OM_OOP01
+    - OM_OOP02
+    - E_OOP_TYPE
+    allowed_relation_ids:
+    - definition
+    - example_of
+    - uses_concept
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - MOOP001
+      - example_of
+      - OM_OOP01
+    - - MOOP001
+      - uses_concept
+      - OM_OOP02
+    - - MOOP001
+      - throws_error
+      - E_OOP_TYPE
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-026
+  title: Explain __str__
+  description: Explain that __str__ returns a human-readable string representation and is called by print() and
+    str().
+  requires: []
+  tags:
+  - Method
+  - Dunder
+  ontology_gate:
+    anchor_ids:
+    - MOOP002
+    allowed_entity_ids:
+    - MOOP002
+    - OM_OOP07
+    - DT_OOP_STR
+    - E_OOP_TYPE
+    allowed_relation_ids:
+    - definition
+    - example_of
+    - produces_type
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - MOOP002
+      - example_of
+      - OM_OOP07
+    - - MOOP002
+      - produces_type
+      - DT_OOP_STR
+    - - MOOP002
+      - throws_error
+      - E_OOP_TYPE
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-027
+  title: Explain __repr__
+  description: Explain that __repr__ returns an unambiguous developer-facing string representation and is used by
+    repr() and the REPL.
+  requires: []
+  tags:
+  - Method
+  - Dunder
+  ontology_gate:
+    anchor_ids:
+    - MOOP003
+    allowed_entity_ids:
+    - MOOP003
+    - OM_OOP07
+    - DT_OOP_STR
+    - E_OOP_TYPE
+    allowed_relation_ids:
+    - definition
+    - example_of
+    - produces_type
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - MOOP003
+      - example_of
+      - OM_OOP07
+    - - MOOP003
+      - produces_type
+      - DT_OOP_STR
+    - - MOOP003
+      - throws_error
+      - E_OOP_TYPE
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-028
+  title: Explain __eq__
+  description: Explain that __eq__ defines value equality, returns bool, and changes the default identity-based
+    equality behaviour.
+  requires: []
+  tags:
+  - Method
+  - Dunder
+  ontology_gate:
+    anchor_ids:
+    - MOOP004
+    allowed_entity_ids:
+    - MOOP004
+    - OM_OOP07
+    - COOP_OBJ_ID
+    - DT_OOP_BOOL
+    - E_OOP_ATTR
+    allowed_relation_ids:
+    - definition
+    - example_of
+    - uses_concept
+    - produces_type
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - MOOP004
+      - example_of
+      - OM_OOP07
+    - - MOOP004
+      - uses_concept
+      - COOP_OBJ_ID
+    - - MOOP004
+      - produces_type
+      - DT_OOP_BOOL
+    - - MOOP004
+      - throws_error
+      - E_OOP_ATTR
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-029
+  title: Explain __len__
+  description: Explain that __len__ defines object length, is called by len(), and must produce an integer value.
+  requires: []
+  tags:
+  - Method
+  - Dunder
+  ontology_gate:
+    anchor_ids:
+    - MOOP005
+    allowed_entity_ids:
+    - MOOP005
+    - OM_OOP07
+    - DT_OOP_INT
+    - E_OOP_TYPE
+    allowed_relation_ids:
+    - definition
+    - example_of
+    - produces_type
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - MOOP005
+      - example_of
+      - OM_OOP07
+    - - MOOP005
+      - produces_type
+      - DT_OOP_INT
+    - - MOOP005
+      - throws_error
+      - E_OOP_TYPE
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-030
+  title: Distinguish name mangling from dunder naming
+  description: Distinguish double-leading-underscore name mangling from special dunder names such as __init__.
+  requires: []
+  tags:
+  - OOPMechanism
+  ontology_gate:
+    anchor_ids:
+    - OM_OOP03
+    - OM_OOP07
+    allowed_entity_ids:
+    - OM_OOP03
+    - OM_OOP07
+    allowed_relation_ids:
+    - definition
+    - contrasts_with
+    max_depth: 1
+    evidence_triples:
+    - - OM_OOP03
+      - contrasts_with
+      - OM_OOP07
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-031
+  title: Explain abstract classes and abstract methods
+  description: Explain that an abstract class cannot be instantiated directly and contains an abstract method that
+    concrete subclasses must implement.
+  requires: []
+  tags:
+  - DesignAbstraction
+  - MethodRole
+  ontology_gate:
+    anchor_ids:
+    - DA_OOP01
+    - MR_OOP03
+    allowed_entity_ids:
+    - DA_OOP01
+    - MR_OOP03
+    - COOP013
+    - E_OOP_TYPE
+    - E_OOP_NOTIMPL
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - has_part
+    - part_of
+    - throws_error
+    max_depth: 1
+    evidence_triples:
+    - - DA_OOP01
+      - depends_on
+      - COOP013
+    - - DA_OOP01
+      - has_part
+      - MR_OOP03
+    - - MR_OOP03
+      - part_of
+      - DA_OOP01
+    - - DA_OOP01
+      - throws_error
+      - E_OOP_TYPE
+    - - MR_OOP03
+      - throws_error
+      - E_OOP_NOTIMPL
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-032
+  title: Explain interfaces in Python OOP
+  description: Explain an interface as a required method set without implementation and relate it to duck typing
+    and abstract-base-class design.
+  requires: []
+  tags:
+  - DesignAbstraction
+  ontology_gate:
+    anchor_ids:
+    - DA_OOP02
+    allowed_entity_ids:
+    - DA_OOP02
+    - COOP019
+    - COOP013
+    allowed_relation_ids:
+    - definition
+    - uses_concept
+    - contrasts_with
+    max_depth: 1
+    evidence_triples:
+    - - DA_OOP02
+      - uses_concept
+      - COOP019
+    - - DA_OOP02
+      - contrasts_with
+      - COOP013
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-033
+  title: Compare composition with inheritance
+  description: Compare composition as a has-a relationship with inheritance and identify instance containment as
+    the basis of composition.
+  requires: []
+  tags:
+  - DesignAbstraction
+  ontology_gate:
+    anchor_ids:
+    - DA_OOP03
+    - COOP013
+    allowed_entity_ids:
+    - DA_OOP03
+    - COOP013
+    - CM_OOP01
+    allowed_relation_ids:
+    - definition
+    - contrasts_with
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - DA_OOP03
+      - contrasts_with
+      - COOP013
+    - - DA_OOP03
+      - uses_concept
+      - CM_OOP01
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-034
+  title: Explain mixins
+  description: Explain a mixin as a class that adds reusable behaviour through multiple inheritance without being
+    intended as a standalone class.
+  requires: []
+  tags:
+  - DesignAbstraction
+  ontology_gate:
+    anchor_ids:
+    - DA_OOP04
+    allowed_entity_ids:
+    - DA_OOP04
+    - OM_OOP06
+    - DA_OOP05
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - example_of
+    max_depth: 1
+    evidence_triples:
+    - - DA_OOP04
+      - depends_on
+      - OM_OOP06
+    - - DA_OOP04
+      - example_of
+      - DA_OOP05
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-035
+  title: Explain design patterns
+  description: Explain a design pattern as a named reusable solution template and relate it to inheritance and encapsulation
+    concepts used in the lecture.
+  requires: []
+  tags:
+  - DesignAbstraction
+  ontology_gate:
+    anchor_ids:
+    - DA_OOP05
+    allowed_entity_ids:
+    - DA_OOP05
+    - COOP013
+    - COOP_ENC
+    - DA_OOP04
+    allowed_relation_ids:
+    - definition
+    - uses_concept
+    - has_example
+    max_depth: 1
+    evidence_triples:
+    - - DA_OOP05
+      - uses_concept
+      - COOP013
+    - - DA_OOP05
+      - uses_concept
+      - COOP_ENC
+    - - DA_OOP04
+      - example_of
+      - DA_OOP05
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-036
+  title: Read the OOP relations in a UML class diagram
+  description: Explain that a UML class diagram shows classes, attributes, methods, and design relations such as
+    inheritance and composition.
+  requires: []
+  tags:
+  - DesignAbstraction
+  ontology_gate:
+    anchor_ids:
+    - DA_OOP06
+    allowed_entity_ids:
+    - DA_OOP06
+    - COOP012
+    - COOP013
+    - COOP_ENC
+    allowed_relation_ids:
+    - definition
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - DA_OOP06
+      - uses_concept
+      - COOP012
+    - - DA_OOP06
+      - uses_concept
+      - COOP013
+    - - DA_OOP06
+      - uses_concept
+      - COOP_ENC
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-037
+  title: Explain why global state conflicts with encapsulation
+  description: Explain the global-state problem and contrast it with bundling state and behaviour through encapsulation.
+  requires: []
+  tags:
+  - DesignAbstraction
+  - Encapsulation
+  ontology_gate:
+    anchor_ids:
+    - DA_OOP07
+    - COOP_ENC
+    allowed_entity_ids:
+    - DA_OOP07
+    - COOP_ENC
+    allowed_relation_ids:
+    - definition
+    - contrasts_with
+    max_depth: 1
+    evidence_triples:
+    - - DA_OOP07
+      - contrasts_with
+      - COOP_ENC
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-038
+  title: Explain class methods
+  description: Explain that a class method receives the class as its first argument and is used for class-level
+    operations or alternative constructors.
+  requires: []
+  tags:
+  - MethodRole
+  ontology_gate:
+    anchor_ids:
+    - MR_OOP04
+    allowed_entity_ids:
+    - MR_OOP04
+    - COOP001
+    allowed_relation_ids:
+    - definition
+    - part_of
+    max_depth: 1
+    evidence_triples:
+    - - MR_OOP04
+      - part_of
+      - COOP001
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-039
+  title: Explain static methods
+  description: Explain that a static method receives no implicit instance or class argument and behaves like a function
+    in the class namespace.
+  requires: []
+  tags:
+  - MethodRole
+  ontology_gate:
+    anchor_ids:
+    - MR_OOP05
+    allowed_entity_ids:
+    - MR_OOP05
+    - COOP001
+    allowed_relation_ids:
+    - definition
+    - part_of
+    max_depth: 1
+    evidence_triples:
+    - - MR_OOP05
+      - part_of
+      - COOP001
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-040
+  title: Explain method signatures
+  description: Explain that a method signature defines the method name and parameter list that form the method interface
+    contract.
+  requires: []
+  tags:
+  - ClassMember
+  ontology_gate:
+    anchor_ids:
+    - CM_OOP05
+    allowed_entity_ids:
+    - CM_OOP05
+    - COOP001
+    allowed_relation_ids:
+    - definition
+    - part_of
+    max_depth: 1
+    evidence_triples:
+    - - CM_OOP05
+      - part_of
+      - COOP001
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-041
+  title: Explain decorators
+  description: Explain that a decorator wraps a function or class and modifies its behaviour through @ syntax.
+  requires: []
+  tags:
+  - PythonInternals
+  ontology_gate:
+    anchor_ids:
+    - PI_OOP01
+    allowed_entity_ids:
+    - PI_OOP01
+    - COOP012
+    allowed_relation_ids:
+    - definition
+    - enables
+    max_depth: 1
+    evidence_triples:
+    - - PI_OOP01
+      - enables
+      - COOP012
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-042
+  title: Explain metaclasses
+  description: Explain that a metaclass is the class of a class and controls how a class is created.
+  requires: []
+  tags:
+  - PythonInternals
+  ontology_gate:
+    anchor_ids:
+    - PI_OOP03
+    allowed_entity_ids:
+    - PI_OOP03
+    - COOP001
+    allowed_relation_ids:
+    - definition
+    - enables
+    max_depth: 1
+    evidence_triples:
+    - - PI_OOP03
+      - enables
+      - COOP001
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-043
+  title: Explain __dict__
+  description: Explain that instance and class __dict__ objects store their attribute namespaces.
+  requires: []
+  tags:
+  - PythonInternals
+  ontology_gate:
+    anchor_ids:
+    - PI_OOP04
+    allowed_entity_ids:
+    - PI_OOP04
+    - CM_OOP01
+    - CM_OOP02
+    - PI_OOP06
+    allowed_relation_ids:
+    - definition
+    - is_used_by
+    - contrasts_with
+    max_depth: 1
+    evidence_triples:
+    - - CM_OOP01
+      - uses_concept
+      - PI_OOP04
+    - - CM_OOP02
+      - uses_concept
+      - PI_OOP04
+    - - PI_OOP04
+      - contrasts_with
+      - PI_OOP06
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-044
+  title: Compare __dict__ with __slots__
+  description: Compare the default dynamic attribute namespace in __dict__ with the fixed attribute set defined
+    by __slots__.
+  requires: []
+  tags:
+  - PythonInternals
+  ontology_gate:
+    anchor_ids:
+    - PI_OOP04
+    - PI_OOP06
+    allowed_entity_ids:
+    - PI_OOP04
+    - PI_OOP06
+    allowed_relation_ids:
+    - definition
+    - contrasts_with
+    max_depth: 1
+    evidence_triples:
+    - - PI_OOP04
+      - contrasts_with
+      - PI_OOP06
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-045
+  title: Implement encapsulation
+  description: Apply name mangling with getter and setter methods to hide internal state and enforce class invariants.
+  requires: []
+  tags:
+  - Skill
+  ontology_gate:
+    anchor_ids:
+    - SKOOP001
+    allowed_entity_ids:
+    - SKOOP001
+    - OM_OOP03
+    - MR_OOP01
+    - MR_OOP02
+    allowed_relation_ids:
+    - definition
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - SKOOP001
+      - uses_concept
+      - OM_OOP03
+    - - SKOOP001
+      - uses_concept
+      - MR_OOP01
+    - - SKOOP001
+      - uses_concept
+      - MR_OOP02
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-046
+  title: Apply inheritance
+  description: Create a subclass, call super() correctly, and override inherited behaviour to specialise the child
+    class.
+  requires: []
+  tags:
+  - Skill
+  ontology_gate:
+    anchor_ids:
+    - SKOOP002
+    allowed_entity_ids:
+    - SKOOP002
+    - CM_OOP03
+    - OM_OOP05
+    allowed_relation_ids:
+    - definition
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - SKOOP002
+      - uses_concept
+      - CM_OOP03
+    - - SKOOP002
+      - uses_concept
+      - OM_OOP05
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-047
+  title: Apply polymorphism
+  description: Write code that works with different object types through a shared interface by using duck typing
+    and method overriding.
+  requires: []
+  tags:
+  - Skill
+  ontology_gate:
+    anchor_ids:
+    - SKOOP003
+    allowed_entity_ids:
+    - SKOOP003
+    - SKOOP002
+    - COOP019
+    - OM_OOP04
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - SKOOP003
+      - depends_on
+      - SKOOP002
+    - - SKOOP003
+      - uses_concept
+      - COOP019
+    - - SKOOP003
+      - uses_concept
+      - OM_OOP04
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-048
+  title: Write dunder methods
+  description: Implement special methods so user-defined classes work with Python built-in operations and operators.
+  requires: []
+  tags:
+  - Skill
+  ontology_gate:
+    anchor_ids:
+    - SKOOP004
+    allowed_entity_ids:
+    - SKOOP004
+    - OM_OOP07
+    allowed_relation_ids:
+    - definition
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - SKOOP004
+      - uses_concept
+      - OM_OOP07
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-049
+  title: Enforce class invariants
+  description: Use object initialisation and validated state changes so object state stays within required constraints.
+  requires: []
+  tags:
+  - Skill
+  ontology_gate:
+    anchor_ids:
+    - SKOOP005
+    allowed_entity_ids:
+    - SKOOP005
+    - SKOOP001
+    - COOP_ENC
+    - MR_OOP02
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - SKOOP005
+      - depends_on
+      - SKOOP001
+    - - SKOOP005
+      - uses_concept
+      - COOP_ENC
+    - - SKOOP005
+      - uses_concept
+      - MR_OOP02
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-050
+  title: Choose method roles
+  description: Choose between abstract, class, and static method roles for a stated design need.
+  requires: []
+  tags:
+  - Skill
+  ontology_gate:
+    anchor_ids:
+    - SKOOP006
+    allowed_entity_ids:
+    - SKOOP006
+    - SKOOP002
+    - MR_OOP03
+    - MR_OOP04
+    - MR_OOP05
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - SKOOP006
+      - depends_on
+      - SKOOP002
+    - - SKOOP006
+      - uses_concept
+      - MR_OOP03
+    - - SKOOP006
+      - uses_concept
+      - MR_OOP04
+    - - SKOOP006
+      - uses_concept
+      - MR_OOP05
+    grounding_status: fully_supported
+- id: COMP101-L10-ITEM-051
+  title: Choose between inheritance, composition, interfaces, and mixins
+  description: Choose an appropriate class relationship from inheritance, composition, an abstract interface, or
+    a mixin for a stated design need.
+  requires: []
+  tags:
+  - Skill
+  - DesignAbstraction
+  ontology_gate:
+    anchor_ids:
+    - SKOOP007
+    allowed_entity_ids:
+    - SKOOP007
+    - SKOOP002
+    - SKOOP006
+    - DA_OOP01
+    - DA_OOP02
+    - DA_OOP03
+    - DA_OOP04
+    allowed_relation_ids:
+    - definition
+    - depends_on
+    - uses_concept
+    max_depth: 1
+    evidence_triples:
+    - - SKOOP007
+      - depends_on
+      - SKOOP002
+    - - SKOOP007
+      - depends_on
+      - SKOOP006
+    - - SKOOP007
+      - uses_concept
+      - DA_OOP01
+    - - SKOOP007
+      - uses_concept
+      - DA_OOP02
+    - - SKOOP007
+      - uses_concept
+      - DA_OOP03
+    - - SKOOP007
+      - uses_concept
+      - DA_OOP04
+    grounding_status: fully_supported
