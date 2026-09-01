@@ -19,6 +19,7 @@ from pathlib import Path
 
 import rdflib
 import yaml
+from pydantic import BaseModel
 
 from .schemas import EvidenceTriple, Item, OntologyScope
 
@@ -156,6 +157,70 @@ def is_evidence_allowed(scope: OntologyScope, triple: EvidenceTriple) -> bool:
     )
 
 
+class DirectionMismatch(BaseModel):
+    """A triple the item file declares in the direction the gate did not collect.
+
+    `collected` holds the same edge as the gate has it, read the other way. That
+    it is never None for any of the ten mismatches in the current file is the
+    whole point: no evidence is missing, only the spelling of the direction
+    differs, and a reader who sees the pair together can tell those two
+    situations apart.
+    """
+
+    declared: EvidenceTriple
+    collected: EvidenceTriple | None = None
+
+    def __str__(self) -> str:
+        if self.collected is None:
+            return f"{self.declared}  (not collected in either direction)"
+        return f"{self.declared}  collected as  {self.collected}"
+
+
+def compare_declared_evidence(
+    item: Item, scope: OntologyScope | None = None
+) -> list[DirectionMismatch]:
+    """Triples the item file declares that the gate does not collect as written.
+
+    The item file carries its own `evidence_triples` alongside the allowlist.
+    The gate does not trust that field -- it resolves evidence from the ontology
+    -- so the two can disagree, and where they do it is worth knowing.
+
+    Every disagreement in the current file has one cause: the declared triple
+    uses one direction of an inverse pair while the allowlist names the other,
+    so the file permits `has_example` and then cites `example_of`. The fact
+    itself is present; each mismatch therefore carries the collected inverse,
+    because "the gate refuses this evidence" and "the gate has this evidence the
+    other way round" are very different reports.
+
+    Whether an allowed relation should imply its inverse is a policy question
+    for the mentor, not one this function decides.
+
+    Pass `scope` when the caller already has it; otherwise it is rebuilt.
+    """
+    scope = build_scope(item) if scope is None else scope
+    collected = {(t.subject, t.predicate, t.object): t for t in scope.evidence}
+
+    mismatches = []
+    for subject, relation, obj in item.ontology_gate.evidence_triples:
+        declared = EvidenceTriple(
+            subject=subject, predicate=to_owl_property(relation), object=obj
+        )
+        if (declared.subject, declared.predicate, declared.object) in collected:
+            continue
+
+        inverse = graph_service.INVERSE_OF.get(graph_service.OOP[declared.predicate])
+        key = (
+            (declared.object, graph_service._local_name(inverse), declared.subject)
+            if inverse is not None
+            else None
+        )
+        mismatches.append(
+            DirectionMismatch(declared=declared, collected=collected.get(key))
+        )
+
+    return mismatches
+
+
 def main() -> None:
     items = load_items()
 
@@ -166,25 +231,32 @@ def main() -> None:
             sys.exit(f"no item matching {wanted!r}")
         for item in matches:
             scope = build_scope(item)
-            print(f"\n{item.id} -- {item.title}")
-            print(f"  anchors:   {', '.join(scope.anchors)}")
-            print(f"  entities:  {len(scope.allowed_entities)}")
-            print(f"  relations: {', '.join(sorted(scope.allowed_relations))}")
-            print(f"  evidence:  {len(scope.evidence)} triples")
+            print(f"\n{item}")
+            print(f"  {scope}")
             for triple in scope.evidence:
                 print(f"    {triple}")
+            for mismatch in compare_declared_evidence(item, scope):
+                print(f"  declared in the other direction: {mismatch}")
         return
 
     print(f"{len(items)} items\n")
-    empty = []
+    empty, flipped = [], []
     for item in items.values():
         scope = build_scope(item)
         if not scope.evidence:
             empty.append(item.id)
-        print(f"{item.id}  {len(scope.evidence):>3} triples  {item.title[:52]}")
+        if compare_declared_evidence(item, scope):
+            flipped.append(item.id)
+        print(f"{len(scope.evidence):>3} triples  {item}")
 
     if empty:
         print(f"\n{len(empty)} items resolved no evidence: {', '.join(empty)}")
+    if flipped:
+        print(
+            f"\n{len(flipped)} items declare a triple in the direction opposite "
+            f"to their allowlist; the gate holds every one of those facts the "
+            f"other way round: {', '.join(flipped)}"
+        )
 
 
 if __name__ == "__main__":

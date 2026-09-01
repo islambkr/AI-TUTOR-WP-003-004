@@ -9,7 +9,15 @@ catch.
 import pytest
 
 from wp4 import scope_gate
-from wp4.schemas import CandidateInstance, EvidenceTriple, ValidationResult
+from wp4.schemas import (
+    CANDIDATE_INSTANCE,
+    EvidenceTriple,
+    MCQInstance,
+    OntologyGate,
+    ShortAnswerInstance,
+    TrueFalseInstance,
+    ValidationResult,
+)
 
 ITEMS = scope_gate.load_items()
 ITEM_001 = ITEMS["COMP101-L10-ITEM-001"]  # Explain what a class represents
@@ -19,8 +27,11 @@ SCOPE_001 = scope_gate.build_scope(ITEM_001)
 # -- the item file -------------------------------------------------------
 
 def test_every_item_parses_and_carries_a_gate():
+    """Parsing is the assertion: `extra="forbid"` means a field nobody modelled
+    fails here rather than being dropped in silence, which is how the item
+    file's `evidence_triples` went unnoticed in the first version."""
     assert len(ITEMS) == 51
-    assert all(item.ontology_gate.anchor_ids for item in ITEMS.values())
+    assert all(item.ontology_gate.allowed_entity_ids for item in ITEMS.values())
 
 
 def test_every_relation_id_translates_to_a_real_owl_property():
@@ -79,6 +90,60 @@ def test_lecture_membership_edges_are_never_evidence():
         assert "taughtIn" not in predicates
 
 
+def test_max_depth_is_bounded():
+    """A hand-edited file cannot ask for a traversal nobody intended."""
+    with pytest.raises(ValueError, match="less than or equal to 5"):
+        OntologyGate(anchor_ids=["A"], allowed_entity_ids=[],
+                     allowed_relation_ids=[], max_depth=9)
+    with pytest.raises(ValueError, match="at least 1 item"):
+        OntologyGate(anchor_ids=[], allowed_entity_ids=[], allowed_relation_ids=[])
+
+
+def test_five_items_declare_a_triple_in_the_opposite_direction():
+    """A finding about the input, recorded so it is not mistaken for a gate bug.
+
+    Five items cite a triple using one direction of an inverse pair while their
+    allowlist names the other -- ITEM-024 permits `has_example` and then cites
+    `example_of`. This pins the count so a change to it is deliberate; the next
+    test is the one that says no evidence is actually lost.
+    """
+    mismatched = {
+        item.id: scope_gate.compare_declared_evidence(item)
+        for item in ITEMS.values()
+        if scope_gate.compare_declared_evidence(item)
+    }
+    assert sorted(mismatched) == [
+        "COMP101-L10-ITEM-017",
+        "COMP101-L10-ITEM-023",
+        "COMP101-L10-ITEM-024",
+        "COMP101-L10-ITEM-035",
+        "COMP101-L10-ITEM-043",
+    ]
+    assert sum(len(v) for v in mismatched.values()) == 10
+
+
+def test_every_direction_mismatch_is_collected_the_other_way_round():
+    """No evidence is lost to the direction flips -- only the spelling differs.
+
+    Without this, the count above reads as "the gate refuses evidence the file
+    declares", which would mean something is broken. Every one of the ten is
+    present in the gate's own evidence as its inverse, so the question the
+    finding raises is about naming, not about coverage.
+    """
+    for item in ITEMS.values():
+        for mismatch in scope_gate.compare_declared_evidence(item):
+            assert mismatch.collected is not None, f"{item.id}: {mismatch.declared}"
+            assert mismatch.collected.subject == mismatch.declared.object
+            assert mismatch.collected.object == mismatch.declared.subject
+
+
+def test_comparing_accepts_a_prebuilt_scope():
+    scope = scope_gate.build_scope(ITEMS["COMP101-L10-ITEM-024"])
+    assert scope_gate.compare_declared_evidence(
+        ITEMS["COMP101-L10-ITEM-024"], scope
+    ) == scope_gate.compare_declared_evidence(ITEMS["COMP101-L10-ITEM-024"])
+
+
 def test_building_the_same_scope_twice_gives_the_same_result():
     first = scope_gate.build_scope(ITEM_001)
     second = scope_gate.build_scope(ITEM_001)
@@ -129,32 +194,66 @@ def test_is_evidence_allowed_rejects_an_out_of_scope_entity():
 
 # -- the output schema ---------------------------------------------------
 
-def test_mcq_requires_choices_containing_the_answer():
-    with pytest.raises(ValueError, match="two choices"):
-        CandidateInstance(
-            item_id="X", instance_type="mcq", prompt="p", answer_key="a"
-        )
+def test_the_discriminator_selects_the_variant():
+    """`instance_type` alone decides which model the payload is checked against."""
+    short = CANDIDATE_INSTANCE.validate_python(
+        {"item_id": "X", "instance_type": "short_answer", "prompt": "p",
+         "answer_key": "a"}
+    )
+    mcq = CANDIDATE_INSTANCE.validate_python(
+        {"item_id": "X", "instance_type": "mcq", "prompt": "p",
+         "answer_key": "a", "choices": ["a", "b"]}
+    )
+    assert isinstance(short, ShortAnswerInstance)
+    assert isinstance(mcq, MCQInstance)
+
+
+def test_mcq_requires_two_choices_containing_the_answer():
+    with pytest.raises(ValueError, match="at least 2 items"):
+        MCQInstance(item_id="X", instance_type="mcq", prompt="p",
+                    answer_key="a", choices=["a"])
     with pytest.raises(ValueError, match="one of its choices"):
-        CandidateInstance(
-            item_id="X", instance_type="mcq", prompt="p",
-            answer_key="a", choices=["b", "c"],
-        )
+        MCQInstance(item_id="X", instance_type="mcq", prompt="p",
+                    answer_key="a", choices=["b", "c"])
 
 
-def test_a_non_mcq_must_not_carry_choices():
-    """A short answer with choices is the wrong question type, not a stray field."""
-    with pytest.raises(ValueError, match="must not carry choices"):
-        CandidateInstance(
-            item_id="X", instance_type="short_answer", prompt="p",
-            answer_key="a", choices=["a", "b"],
-        )
+def test_mcq_choices_must_be_distinct():
+    """Two identical choices are one choice, and duplicating the answer makes
+    two of them correct."""
+    with pytest.raises(ValueError, match="distinct"):
+        MCQInstance(item_id="X", instance_type="mcq", prompt="p",
+                    answer_key="a", choices=["a", "a"])
+
+
+def test_true_false_answers_are_only_true_or_false():
+    """The reason the three types are separate models rather than one."""
+    assert TrueFalseInstance(item_id="X", instance_type="true_false",
+                             prompt="p", answer_key="true").answer_key == "true"
+    with pytest.raises(ValueError):
+        TrueFalseInstance(item_id="X", instance_type="true_false",
+                          prompt="p", answer_key="maybe, it depends")
+
+
+def test_a_short_answer_has_no_choices_field_at_all():
+    """The variant cannot hold choices, so the schema rejects it, not a validator."""
+    with pytest.raises(ValueError, match="[Ee]xtra"):
+        ShortAnswerInstance(item_id="X", instance_type="short_answer", prompt="p",
+                            answer_key="a", choices=["a", "b"])
 
 
 def test_an_unknown_field_is_malformed_output():
+    with pytest.raises(ValueError, match="[Ee]xtra"):
+        CANDIDATE_INSTANCE.validate_python(
+            {"item_id": "X", "instance_type": "short_answer", "prompt": "p",
+             "answer_key": "a", "difficulty": "hard"}
+        )
+
+
+def test_an_unknown_instance_type_is_rejected():
     with pytest.raises(ValueError):
-        CandidateInstance(
-            item_id="X", instance_type="short_answer", prompt="p",
-            answer_key="a", difficulty="hard",
+        CANDIDATE_INSTANCE.validate_python(
+            {"item_id": "X", "instance_type": "essay", "prompt": "p",
+             "answer_key": "a"}
         )
 
 

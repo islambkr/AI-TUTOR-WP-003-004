@@ -3,18 +3,24 @@
 Every value that crosses a stage boundary is a Pydantic model, so a malformed
 record fails where it is produced rather than somewhere downstream. The
 generator's output in particular is never accepted as free text: it must parse
-into CandidateInstance or it is rejected.
+into one of the CandidateInstance variants or it is rejected.
 
-The models here cover the four stages named in the work package: the input item,
-the scope computed for it, the evidence that scope permits, and the candidate
-instance a model proposes from it.
+Every model here forbids unknown fields. An unexpected key means the producer
+and this contract disagree, and that is worth an error whether the producer is a
+language model inventing a field or an item file carrying one nobody modelled.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
+#: The type of instance to generate. Not a field on any model here -- each
+#: variant pins its own `instance_type` -- but the generator takes it as the
+#: "requested instance type" input the work package names in section 10.4.
 InstanceType = Literal["short_answer", "true_false", "mcq"]
+
+#: Shared by every model below. Kept in one place so the rule cannot drift.
+STRICT = ConfigDict(extra="forbid")
 
 
 class EvidenceTriple(BaseModel):
@@ -25,7 +31,7 @@ class EvidenceTriple(BaseModel):
     such as `definition`, which is why it is typed as a plain string.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(**STRICT, frozen=True)
 
     subject: str
     predicate: str
@@ -42,12 +48,26 @@ class OntologyGate(BaseModel):
     is deliberately an explicit allowlist rather than a traversal result: the
     work package requires that scope never depends on a model's judgement, and
     an allowlist cannot drift.
+
+    `evidence_triples` and `grounding_status` are the item file's own record of
+    what supports the item. The gate resolves its evidence from the ontology
+    rather than trusting this field, and scope_gate.compare_declared_evidence
+    reports where the two disagree.
     """
 
-    anchor_ids: list[str]
+    model_config = STRICT
+
+    anchor_ids: list[str] = Field(min_length=1)
     allowed_entity_ids: list[str]
     allowed_relation_ids: list[str]
-    max_depth: int = 1
+    # Every item ships depth 1. The bound is a guard against a hand-edited file
+    # asking for a traversal nobody intended, not a description of the data.
+    max_depth: int = Field(default=1, ge=0, le=5)
+    evidence_triples: list[tuple[str, str, str]] = Field(default_factory=list)
+    # Every one of the 51 items claims fully_supported -- including the five
+    # that declare a triple their own allowlist does not permit. A Literal keeps
+    # a new value from passing unnoticed if the file gains one.
+    grounding_status: Literal["fully_supported"] | None = None
 
 
 class Item(BaseModel):
@@ -59,12 +79,17 @@ class Item(BaseModel):
     stores them.
     """
 
+    model_config = STRICT
+
     id: str
     title: str
     description: str
     requires: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     ontology_gate: OntologyGate
+
+    def __str__(self) -> str:
+        return f"{self.id} -- {self.title}"
 
 
 class OntologyScope(BaseModel):
@@ -75,6 +100,8 @@ class OntologyScope(BaseModel):
     evidence is every permitted fact actually asserted in the graph.
     """
 
+    model_config = STRICT
+
     item_id: str
     anchors: list[str]
     max_depth: int
@@ -82,42 +109,95 @@ class OntologyScope(BaseModel):
     allowed_relations: set[str]
     evidence: list[EvidenceTriple]
 
+    def __str__(self) -> str:
+        return (
+            f"{self.item_id}  anchors={','.join(self.anchors)}  "
+            f"entities={len(self.allowed_entities)}  "
+            f"relations={','.join(sorted(self.allowed_relations))}  "
+            f"evidence={len(self.evidence)}"
+        )
 
-class CandidateInstance(BaseModel):
-    """One generated instance, before any validation has been applied.
 
-    Field names are fixed by the work package. `extra="forbid"` matters: a model
-    that invents a field is producing output the pipeline does not understand,
-    and that is a malformed-output rejection rather than something to paper over.
-    """
+class _InstanceBase(BaseModel):
+    """Fields every generated instance carries, whatever its type."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = STRICT
 
     item_id: str
-    instance_type: InstanceType
     prompt: str
     answer_key: str
-    choices: list[str] | None = None
     ontology_entities_used: list[str] = Field(default_factory=list)
     ontology_evidence: list[EvidenceTriple] = Field(default_factory=list)
     generation_notes: str | None = None
 
-    @model_validator(mode="after")
-    def _choices_belong_to_mcq_only(self) -> "CandidateInstance":
-        """Choices are required for an MCQ and forbidden everywhere else.
 
-        A short-answer instance carrying choices is not a harmless extra: it
-        means the model produced a different question type from the one asked
-        for, which the caller needs to see as an error.
-        """
-        if self.instance_type == "mcq":
-            if not self.choices or len(self.choices) < 2:
-                raise ValueError("an mcq needs at least two choices")
-            if self.answer_key not in self.choices:
-                raise ValueError("the answer key of an mcq must be one of its choices")
-        elif self.choices is not None:
-            raise ValueError(f"{self.instance_type} must not carry choices")
+class ShortAnswerInstance(_InstanceBase):
+    instance_type: Literal["short_answer"]
+
+
+class TrueFalseInstance(_InstanceBase):
+    """A true/false instance, whose answer is one of exactly two words.
+
+    Narrowing `answer_key` here is the point of having a separate variant: a
+    model that replies "maybe, it depends" has not answered a true/false
+    question, and the schema says so rather than a grader discovering it later.
+    """
+
+    instance_type: Literal["true_false"]
+    answer_key: Literal["true", "false"]
+
+
+class MCQInstance(_InstanceBase):
+    """A multiple-choice instance, the only variant that carries choices.
+
+    Modelling the three types separately rather than as one class with an
+    optional field means a short answer cannot hold choices at all: the field
+    does not exist on it, so the error comes from the schema instead of from a
+    validator that has to remember the rule.
+    """
+
+    instance_type: Literal["mcq"]
+    choices: list[str] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def _answer_is_one_of_the_choices(self) -> "MCQInstance":
+        if self.answer_key not in self.choices:
+            raise ValueError("the answer key of an mcq must be one of its choices")
         return self
+
+    @model_validator(mode="after")
+    def _choices_are_distinct(self) -> "MCQInstance":
+        """Two identical choices are one choice, and a duplicate answer is two
+        correct answers. Section 11 measures near-duplicates in the candidate
+        set; a duplicate inside a single question is the same defect, smaller."""
+        if len(set(self.choices)) != len(self.choices):
+            raise ValueError("the choices of an mcq must be distinct")
+        return self
+
+
+#: A stored candidate of any type. The discriminator lets Pydantic pick the
+#: variant from `instance_type` alone, so a malformed record is rejected against
+#: the right schema rather than against all three in turn.
+#:
+#: This is the type for *reading* records. Do not hand it to the model as a
+#: structured-output schema: it compiles to `oneOf` plus a discriminator, and
+#: small local models fill branching schemas unreliably. The generator knows
+#: which type it asked for, so it should pass the concrete variant
+#: (MCQInstance, and so on) and keep this union for parsing what comes back.
+CandidateInstance = Annotated[
+    ShortAnswerInstance | TrueFalseInstance | MCQInstance,
+    Field(discriminator="instance_type"),
+]
+
+#: Use to parse untrusted input: `CANDIDATE_INSTANCE.validate_python(payload)`.
+CANDIDATE_INSTANCE = TypeAdapter(CandidateInstance)
+
+#: The variant to request from the model for a given instance type.
+INSTANCE_MODELS: dict[str, type[_InstanceBase]] = {
+    "short_answer": ShortAnswerInstance,
+    "true_false": TrueFalseInstance,
+    "mcq": MCQInstance,
+}
 
 
 class ValidationResult(BaseModel):
@@ -127,6 +207,8 @@ class ValidationResult(BaseModel):
     The work package requires the two to be reported separately, and keeping the
     distinction on the record itself is what makes that possible later.
     """
+
+    model_config = STRICT
 
     item_id: str
     kind: Literal["ontology", "pedagogical"]
