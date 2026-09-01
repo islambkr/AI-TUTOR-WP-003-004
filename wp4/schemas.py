@@ -206,6 +206,12 @@ class ValidationResult(BaseModel):
     `kind` records whether this verdict is deterministic or a model judgement.
     The work package requires the two to be reported separately, and keeping the
     distinction on the record itself is what makes that possible later.
+
+    Section 10.7 also requires a final human-review field. It is deliberately
+    not here: a human decision is made once per candidate, not once per
+    validation pass, so it belongs on the stored candidate record that step 10.8
+    builds -- alongside the generation input, both verdicts, and the rejection
+    reason. Recorded here so it is not lost between the two steps.
     """
 
     model_config = STRICT

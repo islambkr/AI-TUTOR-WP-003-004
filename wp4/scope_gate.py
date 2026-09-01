@@ -8,10 +8,6 @@ whereas this is a decision the generator cannot reach.
 
 Graph access is reused from the WP-003 service rather than reimplemented, so
 there remains exactly one piece of code that reads the ontology.
-
-Run it:
-    python -m wp4.scope_gate                 summarise every item's scope
-    python -m wp4.scope_gate ITEM-001        print one scope in full
 """
 
 import sys
@@ -108,6 +104,29 @@ def collect_evidence(
     return evidence
 
 
+def with_inverses(relations: set[str]) -> set[str]:
+    """Add the `owl:inverseOf` partner of every relation named.
+
+    The mentor's ruling: for a given relation, assume its opposite as well. So
+    an item permitting `is_used_by` also permits `usesConcept`, because
+    `owl:inverseOf` makes them one edge described from two ends.
+
+    This does not widen the gate. Entities stay on the allowlist, the inverse
+    pairs are asserted in the ontology rather than guessed, and the expansion is
+    a lookup rather than a traversal -- assuming the opposite is not walking
+    another hop. `contrastsWith` gains nothing: it is `owl:SymmetricProperty`,
+    not half of an inverse pair. `teaches`/`taughtIn` stay unreachable, because
+    no item allows either, and adding a partner to a set that contains neither
+    adds neither.
+    """
+    return relations | {
+        graph_service._local_name(inverse)
+        for name in relations
+        if (inverse := graph_service.INVERSE_OF.get(graph_service.OOP[name]))
+        is not None
+    }
+
+
 def build_scope(item: Item, max_depth: int | None = None) -> OntologyScope:
     """Resolve one item's allowlist into a scope with its supporting evidence.
 
@@ -118,7 +137,9 @@ def build_scope(item: Item, max_depth: int | None = None) -> OntologyScope:
     """
     gate = item.ontology_gate
     allowed_entities = set(gate.allowed_entity_ids) | set(gate.anchor_ids)
-    allowed_relations = {to_owl_property(r) for r in gate.allowed_relation_ids}
+    allowed_relations = with_inverses(
+        {to_owl_property(r) for r in gate.allowed_relation_ids}
+    )
 
     return OntologyScope(
         item_id=item.id,

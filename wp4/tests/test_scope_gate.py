@@ -99,42 +99,52 @@ def test_max_depth_is_bounded():
         OntologyGate(anchor_ids=[], allowed_entity_ids=[], allowed_relation_ids=[])
 
 
-def test_five_items_declare_a_triple_in_the_opposite_direction():
-    """A finding about the input, recorded so it is not mistaken for a gate bug.
+def test_an_allowed_relation_implies_its_inverse():
+    """The mentor's ruling: for a given relation, assume its opposite as well.
 
-    Five items cite a triple using one direction of an inverse pair while their
-    allowlist names the other -- ITEM-024 permits `has_example` and then cites
-    `example_of`. This pins the count so a change to it is deliberate; the next
-    test is the one that says no evidence is actually lost.
+    ITEM-043 permits `is_used_by` only, and the gate now allows `usesConcept`
+    with it, because `owl:inverseOf` makes them one edge seen from two ends.
     """
-    mismatched = {
-        item.id: scope_gate.compare_declared_evidence(item)
-        for item in ITEMS.values()
-        if scope_gate.compare_declared_evidence(item)
-    }
-    assert sorted(mismatched) == [
-        "COMP101-L10-ITEM-017",
-        "COMP101-L10-ITEM-023",
-        "COMP101-L10-ITEM-024",
-        "COMP101-L10-ITEM-035",
-        "COMP101-L10-ITEM-043",
-    ]
-    assert sum(len(v) for v in mismatched.values()) == 10
+    scope = scope_gate.build_scope(ITEMS["COMP101-L10-ITEM-043"])
+    assert "isUsedBy" in scope.allowed_relations
+    assert "usesConcept" in scope.allowed_relations
 
 
-def test_every_direction_mismatch_is_collected_the_other_way_round():
-    """No evidence is lost to the direction flips -- only the spelling differs.
+def test_expanding_inverses_does_not_reach_the_lecture_edges():
+    """`teaches`/`taughtIn` are an inverse pair, so the expansion could have
+    reintroduced them. No item allows either, and adding the partner of a
+    relation that is absent adds nothing."""
+    assert scope_gate.with_inverses({"teaches"}) == {"teaches", "taughtIn"}
+    for item in ITEMS.values():
+        allowed = scope_gate.build_scope(item).allowed_relations
+        assert "teaches" not in allowed and "taughtIn" not in allowed
 
-    Without this, the count above reads as "the gate refuses evidence the file
-    declares", which would mean something is broken. Every one of the ten is
-    present in the gate's own evidence as its inverse, so the question the
-    finding raises is about naming, not about coverage.
+
+def test_a_symmetric_relation_gains_no_partner():
+    """contrastsWith is owl:SymmetricProperty, not half of an inverse pair."""
+    assert scope_gate.with_inverses({"contrastsWith"}) == {"contrastsWith"}
+
+
+def test_no_item_declares_a_triple_the_gate_cannot_collect():
+    """Once inverses are implied, the direction mismatch disappears.
+
+    Before the ruling, five items cited a triple in the direction opposite to
+    their own allowlist and this returned ten of them. compare_declared_evidence
+    is kept because it still catches the case it was written for: a file citing
+    something asserted in *neither* direction, which would come back with
+    `collected=None`.
     """
     for item in ITEMS.values():
-        for mismatch in scope_gate.compare_declared_evidence(item):
-            assert mismatch.collected is not None, f"{item.id}: {mismatch.declared}"
-            assert mismatch.collected.subject == mismatch.declared.object
-            assert mismatch.collected.object == mismatch.declared.subject
+        assert scope_gate.compare_declared_evidence(item) == []
+
+
+def test_comparison_still_catches_a_triple_asserted_in_neither_direction():
+    item = ITEMS["COMP101-L10-ITEM-001"]
+    invented = item.model_copy(deep=True)
+    invented.ontology_gate.evidence_triples = [("COOP001", "has_part", "PI_OOP03")]
+    mismatches = scope_gate.compare_declared_evidence(invented)
+    assert len(mismatches) == 1
+    assert mismatches[0].collected is None
 
 
 def test_comparing_accepts_a_prebuilt_scope():
