@@ -12,3 +12,5 @@ __pycache__/
 
 # Personal learning work, not part of the deliverable
 study_material/
+wp4_overnight.log
+wp4/candidates.jsonl
