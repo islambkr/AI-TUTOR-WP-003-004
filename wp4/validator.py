@@ -63,9 +63,32 @@ def _all_labels() -> dict[str, str]:
 LABELS: dict[str, str] = _all_labels()
 ALL_COURSE_IDS: frozenset[str] = frozenset(LABELS)
 
+#: The lecture itself is not leakable content. It is labelled "Object-Oriented
+#: Programming", so any prompt using that phrase generically was rejected for
+#: naming an out-of-scope entity -- and no item allows the lecture, because the
+#: item file excludes teaches/taughtIn for the same reason: it is the container
+#: of the material, not a concept within it.
+LECTURE_IDS: frozenset[str] = frozenset(
+    scope_gate._course_id(iri)
+    for iri in scope_gate.graph_service.GRAPH.subjects(
+        scope_gate.graph_service.RDF.type, scope_gate.graph_service.OOP.Lecture
+    )
+)
+LEAKABLE_IDS: frozenset[str] = ALL_COURSE_IDS - LECTURE_IDS
 
-def _names_entity(text: str, course_id: str) -> bool:
+
+def _names_entity(text: str, course_id: str, *, strict_case: bool = True) -> bool:
     """Does this text name that entity, by identifier or by label?
+
+    `strict_case` distinguishes the two directions this is used in, which want
+    opposite things from an ambiguous single-word label like "class":
+
+    Leakage *rejects*, so it is strict (default). Only "Class" counts, not
+    "class", because a false positive silently discards correct work.
+
+    Grounding *accepts*, so it is lenient. A model that writes "a class is a
+    blueprint" has named the entity, and requiring the capital would reject a
+    perfectly grounded answer -- which it did, until measured.
 
     Identifiers match case-insensitively: COOP001 is distinctive enough that a
     match is never accidental.
@@ -94,13 +117,19 @@ def _names_entity(text: str, course_id: str) -> bool:
     if not label:
         return False
 
-    flags = 0 if label.isalpha() else re.IGNORECASE
+    flags = 0 if (strict_case and label.isalpha()) else re.IGNORECASE
     return re.search(rf"(?<!\w){re.escape(label)}(?!\w)", text, flags) is not None
 
 
 def names_an_allowed_entity(text: str, scope: OntologyScope) -> bool:
-    """True when the text names at least one entity the gate permits."""
-    return any(_names_entity(text, cid) for cid in scope.allowed_entities)
+    """True when the text names at least one entity the gate permits.
+
+    Case-insensitive on purpose -- see `strict_case` in _names_entity.
+    """
+    return any(
+        _names_entity(text, cid, strict_case=False)
+        for cid in scope.allowed_entities
+    )
 
 
 def leaked_entities(text: str, scope: OntologyScope) -> list[str]:
@@ -113,7 +142,7 @@ def leaked_entities(text: str, scope: OntologyScope) -> list[str]:
     """
     return [
         f"{LABELS[cid]} ({cid})" if LABELS.get(cid) else cid
-        for cid in sorted(ALL_COURSE_IDS - scope.allowed_entities)
+        for cid in sorted(LEAKABLE_IDS - scope.allowed_entities)
         if _names_entity(text, cid)
     ]
 

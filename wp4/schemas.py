@@ -132,7 +132,10 @@ class _InstanceBase(BaseModel):
 
 
 class ShortAnswerInstance(_InstanceBase):
-    instance_type: Literal["short_answer"]
+    # Defaulted rather than required: there is exactly one valid value, and a
+    # small model asked to fill it simply omitted the field. The Literal still
+    # pins it, so the discriminated union is unaffected.
+    instance_type: Literal["short_answer"] = "short_answer"
 
 
 class TrueFalseInstance(_InstanceBase):
@@ -143,7 +146,7 @@ class TrueFalseInstance(_InstanceBase):
     question, and the schema says so rather than a grader discovering it later.
     """
 
-    instance_type: Literal["true_false"]
+    instance_type: Literal["true_false"] = "true_false"
     answer_key: Literal["true", "false"]
 
 
@@ -156,7 +159,7 @@ class MCQInstance(_InstanceBase):
     validator that has to remember the rule.
     """
 
-    instance_type: Literal["mcq"]
+    instance_type: Literal["mcq"] = "mcq"
     choices: list[str] = Field(min_length=2)
 
     @model_validator(mode="after")
@@ -200,6 +203,62 @@ INSTANCE_MODELS: dict[str, type[_InstanceBase]] = {
 }
 
 
+class GenerationInput(BaseModel):
+    """Exactly what the model was shown, kept so a candidate can be re-made.
+
+    The work package is strict that the model sees only this -- never the full
+    ontology -- so recording it is what makes that claim checkable after the
+    fact rather than a description of intent.
+    """
+
+    model_config = STRICT
+
+    item_id: str
+    item_title: str
+    item_description: str
+    instance_type: InstanceType
+    allowed_entities: list[str]
+    allowed_relations: list[str]
+    evidence: list[EvidenceTriple]
+    model_name: str
+
+
+class CandidateRecord(BaseModel):
+    """One candidate and everything that happened to it -- the section 10.7 row.
+
+    Rejected candidates stay in the dataset with their reason attached, so the
+    six fields below are all optional-on-failure rather than absent: a record
+    whose generation failed still carries its input and its reason.
+
+    `ungrounded_distractors` is a signal, not a verdict. Distractors may be
+    invented, and counting how often that happens is what allows the comparison
+    between the items that carry a `contrastsWith` edge and those that do not.
+    """
+
+    model_config = STRICT
+
+    generation_input: GenerationInput
+    raw_output: str | None = None
+    instance: ShortAnswerInstance | TrueFalseInstance | MCQInstance | None = None
+    ontology_validation: "ValidationResult | None" = None
+    pedagogical_validation: "ValidationResult | None" = None
+    ungrounded_distractors: list[str] = Field(default_factory=list)
+    # True when the model returned no citations and the generator attached the
+    # evidence it had supplied. Recorded rather than hidden: it means the
+    # fabricated-citation check had nothing of the model's own to judge.
+    evidence_attached: bool = False
+    human_decision: Literal["accepted", "rejected", "unreviewed"] = "unreviewed"
+    rejection_reason: str | None = None
+
+    @property
+    def item_id(self) -> str:
+        return self.generation_input.item_id
+
+    @property
+    def passed_ontology(self) -> bool:
+        return bool(self.ontology_validation and self.ontology_validation.passed)
+
+
 class ValidationResult(BaseModel):
     """The outcome of one validation pass over one candidate.
 
@@ -228,3 +287,6 @@ class ValidationResult(BaseModel):
         if not self.passed and not self.failures:
             raise ValueError("a failing result must say why")
         return self
+
+
+CandidateRecord.model_rebuild()
